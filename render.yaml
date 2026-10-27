@@ -1,0 +1,34 @@
+# Render Blueprint for a free staging instance (Render → New → Blueprint → pick this repo).
+# Free web services sleep after inactivity and have 512 MB RAM; fine for trying RMS, not for production.
+services:
+  - type: web
+    name: rms-staging
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AUTH_MODE
+        value: supabase
+      - key: STORAGE_DRIVER
+        value: supabase
+      - key: STORAGE_BUCKET
+        value: rms-documents
+      - key: DATABASE_POOL_MAX
+        value: '3'
+      # Set these in the Render dashboard (never commit them):
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: APP_ORIGIN
+        sync: false
+      # Public build values compiled into the web app:
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
