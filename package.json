@@ -1,0 +1,16 @@
+{
+  "name": "rms",
+  "private": true,
+  "description": "Reqaz Management System",
+  "workspaces": ["packages/*", "apps/*"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "db:reset": "scripts/db-reset.sh rms_dev --seed",
+    "dev:api": "npm run dev -w @rms/api",
+    "dev:web": "npm run dev -w @rms/web",
+    "build": "npm run build -w @rms/shared && npm run build -w @rms/api && npm run build -w @rms/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test -w @rms/shared && npm run test -w @rms/api",
+    "test:e2e": "npm run test:e2e -w @rms/web"
+  }
+}

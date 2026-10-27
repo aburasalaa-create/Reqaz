@@ -1,0 +1,24 @@
+import { defineConfig } from '@playwright/test';
+
+// Runs the whole stack locally: API (dev auth, local storage) against the rms_e2e database,
+// and the Vite dev server. CI resets the database first (see package.json "test:e2e").
+const DB = process.env.E2E_DATABASE_URL ?? 'postgres://postgres@localhost:54322/rms_dev';
+
+export default defineConfig({
+  testDir: './e2e',
+  timeout: 90_000,
+  expect: { timeout: 10_000 },
+  workers: 1,
+  reporter: [['list']],
+  use: { baseURL: 'http://127.0.0.1:5173', viewport: { width: 1440, height: 900 }, trace: 'retain-on-failure' },
+  webServer: [
+    {
+      command: 'npx tsx src/server.ts',
+      cwd: '../api',
+      url: 'http://127.0.0.1:8787/health',
+      reuseExistingServer: true,
+      env: { NODE_ENV: 'development', DATABASE_URL: DB, AUTH_MODE: 'dev', STORAGE_LOCAL_DIR: '../../storage-local' },
+    },
+    { command: 'npx vite --host 127.0.0.1', url: 'http://127.0.0.1:5173', reuseExistingServer: true, env: { VITE_AUTH_MODE: 'dev' } },
+  ],
+});
