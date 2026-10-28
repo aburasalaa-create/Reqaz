@@ -38,7 +38,7 @@ function localStorage(root: string): Storage {
 // Supabase Storage REST API, authenticated with the service-role key (server side only).
 function supabaseStorage(url: string, serviceKey: string, bucket: string): Storage {
   const base = new URL('/storage/v1/object/', url).toString();
-  const headers = { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey };
+  const headers = supabaseKeyHeaders(serviceKey);
   return {
     async put(key, body, contentType) {
       const res = await fetch(`${base}${bucket}/${key}`, {
@@ -63,3 +63,8 @@ export function newStorageKey(entityType: string, entityId: string, fileName: st
 }
 
 export const sha256 = (b: Buffer) => createHash('sha256').update(b).digest('hex');
+
+/** New-style secret keys (sb_secret_…) are sent as `apikey` only; legacy service-role JWTs also as a Bearer token. */
+export function supabaseKeyHeaders(key: string): Record<string, string> {
+  return key.startsWith('sb_') ? { apikey: key } : { apikey: key, Authorization: `Bearer ${key}` };
+}

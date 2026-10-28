@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { many, one, type Db, inSequence } from '../db.js';
+import { supabaseKeyHeaders } from '../storage.js';
 import { HttpError } from '../errors.js';
 import type { Config } from '../config.js';
 import { idParam, optText, requirePermission, tx, updateOrFail } from './util.js';
@@ -83,7 +84,7 @@ export default async function coreRoutes(app: FastifyInstance, { db, cfg }: { db
       if (!cfg.SUPABASE_URL || !cfg.SUPABASE_SERVICE_ROLE_KEY) throw new HttpError(501, 'User invitations need SUPABASE_SERVICE_ROLE_KEY', 'not_configured');
       const res = await fetch(new URL('/auth/v1/invite', cfg.SUPABASE_URL), {
         method: 'POST',
-        headers: { apikey: cfg.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${cfg.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json' },
+        headers: { ...supabaseKeyHeaders(cfg.SUPABASE_SERVICE_ROLE_KEY), 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: body.email, data: { full_name: body.full_name } }),
       });
       if (!res.ok) throw new HttpError(502, `Invitation failed: ${await res.text()}`, 'upstream');

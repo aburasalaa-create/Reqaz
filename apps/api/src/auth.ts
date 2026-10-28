@@ -1,4 +1,4 @@
-import { createRemoteJWKSet, jwtVerify, SignJWT, type JWTPayload } from 'jose';
+import { createRemoteJWKSet, decodeProtectedHeader, jwtVerify, SignJWT, type JWTPayload } from 'jose';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Config } from './config.js';
 import { HttpError } from './errors.js';
@@ -21,15 +21,22 @@ export function createVerifier(cfg: Config): TokenVerifier {
     const key = new TextEncoder().encode(cfg.DEV_JWT_SECRET);
     return async (token) => toUser((await jwtVerify(token, key, { audience: 'authenticated', algorithms: ['HS256'] })).payload);
   }
-  if (cfg.SUPABASE_JWT_SECRET) {
-    const key = new TextEncoder().encode(cfg.SUPABASE_JWT_SECRET);
-    return async (token) => toUser((await jwtVerify(token, key, { audience: 'authenticated', algorithms: ['HS256'] })).payload);
-  }
-  if (!cfg.SUPABASE_URL) throw new Error('SUPABASE_URL or SUPABASE_JWT_SECRET is required');
-  // Supabase projects with asymmetric signing keys publish them here.
-  const jwks = createRemoteJWKSet(new URL('/auth/v1/.well-known/jwks.json', cfg.SUPABASE_URL));
-  const issuer = new URL('/auth/v1', cfg.SUPABASE_URL).toString();
-  return async (token) => toUser((await jwtVerify(token, jwks, { audience: 'authenticated', issuer })).payload);
+  if (!cfg.SUPABASE_URL && !cfg.SUPABASE_JWT_SECRET) throw new Error('SUPABASE_URL or SUPABASE_JWT_SECRET is required');
+  // Legacy projects sign sessions with a shared HS256 secret; newer ones with asymmetric keys published as JWKS.
+  // Both are accepted, chosen by the token's own algorithm, so rotating a project to signing keys needs no redeploy.
+  const secret = cfg.SUPABASE_JWT_SECRET ? new TextEncoder().encode(cfg.SUPABASE_JWT_SECRET) : null;
+  const jwks = cfg.SUPABASE_URL ? createRemoteJWKSet(new URL('/auth/v1/.well-known/jwks.json', cfg.SUPABASE_URL)) : null;
+  const issuer = cfg.SUPABASE_URL ? new URL('/auth/v1', cfg.SUPABASE_URL).toString() : undefined;
+  return async (token) => {
+    let alg: string | undefined;
+    try { alg = decodeProtectedHeader(token).alg; } catch { throw new HttpError(401, 'Invalid session', 'unauthorized'); }
+    if (alg === 'HS256') {
+      if (!secret) throw new HttpError(401, 'Invalid session', 'unauthorized');
+      return toUser((await jwtVerify(token, secret, { audience: 'authenticated', algorithms: ['HS256'], issuer })).payload);
+    }
+    if (!jwks) throw new HttpError(401, 'Invalid session', 'unauthorized');
+    return toUser((await jwtVerify(token, jwks, { audience: 'authenticated', issuer })).payload);
+  };
 }
 
 function toUser(p: JWTPayload): AuthUser {
