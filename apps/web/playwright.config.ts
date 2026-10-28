@@ -4,11 +4,11 @@ import { defineConfig } from '@playwright/test';
 // and the Vite dev server. CI resets the database first (see package.json "test:e2e").
 const DB = process.env.E2E_DATABASE_URL ?? 'postgres://postgres@localhost:54322/rms_dev';
 
-// In CI the built web app is served by the API itself (same origin, no on-demand Vite compilation),
+// In CI the built web app is served by the bundled API itself (same origin, no on-demand compilation),
 // which is also how production runs. Locally the Vite dev server is used for fast iteration.
 const CI = !!process.env.CI;
 const api = {
-  command: 'npx tsx src/server.ts',
+  command: CI ? 'node dist/server/index.js' : 'npx tsx src/server.ts',
   cwd: '../api',
   url: 'http://127.0.0.1:8787/health',
   reuseExistingServer: !CI,

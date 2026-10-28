@@ -30,6 +30,7 @@ jobs:
       - run: scripts/db-reset.sh rms_dev --seed
       - run: npm run build -w @rms/web
         env: { VITE_AUTH_MODE: dev }
+      - run: npm run bundle -w @rms/api
       - run: npm run test:e2e
         env: { CI: 'true' }
       - uses: actions/upload-artifact@v4
