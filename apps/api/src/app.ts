@@ -47,6 +47,9 @@ export async function buildApp({ cfg, db, storage, pdf, verifier }: AppDeps) {
   const verify = verifier ?? createVerifier(cfg);
 
   await app.register(async (api) => {
+    // Public values the browser needs to start Supabase sign-in; read at runtime so the web build needs no secrets or rebuilds.
+    api.get('/public-config', async () => ({ supabaseUrl: cfg.SUPABASE_URL ?? null, supabaseAnonKey: cfg.SUPABASE_ANON_KEY ?? null }));
+
     // Local development sign-in for seeded users. Never registered in production.
     if (cfg.AUTH_MODE === 'dev' && cfg.NODE_ENV !== 'production') {
       api.get('/dev/users', async () => (await db.query(`

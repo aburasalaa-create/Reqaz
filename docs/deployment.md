@@ -29,12 +29,7 @@ Reqaz must own every account below. Use a company e-mail address (for example it
 
 ## 3. Container configuration
 
-Build arguments are public and compiled into the browser bundle:
-
-```
-VITE_SUPABASE_URL=https://<project>.supabase.co
-VITE_SUPABASE_ANON_KEY=<anon public key>
-```
+The browser needs two public values: the Supabase URL and the publishable (anon) key. The API hands them to the browser at `/api/public-config` when the page loads, using `SUPABASE_URL` and `SUPABASE_ANON_KEY` (or `VITE_SUPABASE_ANON_KEY`). The API refuses to start if a secret or service-role key is put in that slot. They can also be compiled into the web build as `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` build arguments, which then take priority.
 
 Runtime secrets are set in the host's secret manager, never in the repository. See `apps/api/.env.example`.
 
@@ -44,6 +39,7 @@ DATABASE_URL=<Supabase pooler connection string, transaction mode>
 APP_ORIGIN=https://app.reqaz.com
 AUTH_MODE=supabase
 SUPABASE_URL=https://<project>.supabase.co
+SUPABASE_ANON_KEY=<publishable (anon) key — public, sent to the browser>
 SUPABASE_SERVICE_ROLE_KEY=<service role key — server only>
 STORAGE_DRIVER=supabase
 STORAGE_BUCKET=rms-documents

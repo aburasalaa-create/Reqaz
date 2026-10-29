@@ -14,6 +14,8 @@ const schema = z.object({
   SUPABASE_URL: z.string().optional(),
   SUPABASE_JWT_SECRET: z.string().optional(),           // legacy HS256 projects
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),     // server-only: storage + user invites
+  // Public (publishable/anon) key, handed to the browser at /api/public-config. Falls back to VITE_SUPABASE_ANON_KEY.
+  SUPABASE_ANON_KEY: z.string().optional(),
   DEV_JWT_SECRET: z.string().default('dev-only-secret-change-me-dev-only-secret'),
   // Private document storage
   STORAGE_DRIVER: z.enum(['local', 'supabase']).default('local'),
@@ -31,10 +33,26 @@ export type Config = z.infer<typeof schema>;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const cfg = schema.parse(env);
+  cfg.SUPABASE_ANON_KEY ??= env.VITE_SUPABASE_ANON_KEY || undefined;
+  if (cfg.SUPABASE_ANON_KEY && isSecretKey(cfg.SUPABASE_ANON_KEY)) {
+    throw new Error('SUPABASE_ANON_KEY holds a secret/service-role key; it must be the publishable (anon) key');
+  }
   if (cfg.NODE_ENV === 'production') {
     if (cfg.AUTH_MODE !== 'supabase') throw new Error('AUTH_MODE=dev is not allowed in production');
     if (!cfg.SUPABASE_URL) throw new Error('SUPABASE_URL is required in production');
     if (cfg.STORAGE_DRIVER !== 'supabase') throw new Error('Use STORAGE_DRIVER=supabase in production');
   }
   return cfg;
+}
+
+/** True for keys that must never reach a browser: new-style secret keys and legacy service_role JWTs. */
+export function isSecretKey(key: string): boolean {
+  if (key.startsWith('sb_secret_')) return true;
+  const payload = key.split('.')[1];
+  if (!payload) return false;
+  try {
+    return JSON.parse(Buffer.from(payload, 'base64url').toString()).role === 'service_role';
+  } catch {
+    return false;
+  }
 }
