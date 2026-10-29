@@ -10,10 +10,10 @@ export type PdfLanguage = 'bilingual' | 'en' | 'ar';
 
 const require = createRequire(import.meta.url);
 const font = (pkg: string, file: string) => readFileSync(require.resolve(`${pkg}/files/${file}`)).toString('base64');
-const LOGO = `data:image/png;base64,${readFileSync(new URL('../../assets/reqaz-logo.png', import.meta.url)).toString('base64')}`;
+export const LOGO = `data:image/png;base64,${readFileSync(new URL('../../assets/reqaz-logo.png', import.meta.url)).toString('base64')}`;
 
 let fontCss: string | null = null;
-function fonts() {
+export function fonts() {
   fontCss ??= [
     ['Noto Sans', '@fontsource/noto-sans', 'noto-sans-latin-400-normal.woff2', 400],
     ['Noto Sans', '@fontsource/noto-sans', 'noto-sans-latin-700-normal.woff2', 700],
@@ -23,14 +23,14 @@ function fonts() {
   return fontCss;
 }
 
-const escape = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+export const escape = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 /** Escaped user text, isolated so English inside Arabic (and vice versa) keeps its own direction and punctuation. Text content only. */
-const esc = (v: unknown) => { const s = escape(v); return s ? `<bdi>${s}</bdi>` : ''; };
-const money = (v: string | number | null | undefined) => Number(v ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const qty = (v: string | number) => Number(v).toLocaleString('en-US', { maximumFractionDigits: 3 });
-const para = (v: string | null | undefined) => esc(v).replace(/\n/g, '<br>');
+export const esc = (v: unknown) => { const s = escape(v); return s ? `<bdi>${s}</bdi>` : ''; };
+export const money = (v: string | number | null | undefined) => Number(v ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const qty = (v: string | number) => Number(v).toLocaleString('en-US', { maximumFractionDigits: 3 });
+export const para = (v: string | null | undefined) => esc(v).replace(/\n/g, '<br>');
 const lines = (v: string | null | undefined) => String(v ?? '').split('\n').map((s) => s.trim()).filter(Boolean);
-const fmtDate = (v: string | Date | null | undefined) => {
+export const fmtDate = (v: string | Date | null | undefined) => {
   if (!v) return '';
   const d = typeof v === 'string' ? new Date(v.length === 10 ? `${v}T00:00:00Z` : v) : v;
   return `<bdi>${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit', timeZone: 'Asia/Riyadh' }).replace(/ /g, '-')}</bdi>`;

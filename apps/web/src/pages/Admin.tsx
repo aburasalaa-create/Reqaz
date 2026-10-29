@@ -27,6 +27,7 @@ export default function Admin() {
     mutationFn: () => api.patch('/admin/settings', {
       legal_name_en: settings.legal_name_en, legal_name_ar: settings.legal_name_ar, vat_number: settings.vat_number ?? '', cr_number: settings.cr_number ?? '',
       address_en: settings.address_en ?? '', address_ar: settings.address_ar ?? '', phone: settings.phone ?? '', email: settings.email ?? '', website: settings.website ?? '',
+      ...Object.fromEntries(['unified_number','building_number','street','district','city','postal_code','additional_number','bank_name','bank_account_name','bank_iban','invoice_terms_en','invoice_terms_ar'].map((k) => [k, settings[k] ?? ''])),
       quotation_validity_days: Number(settings.quotation_validity_days), allow_self_approval: !!settings.allow_self_approval,
     }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['lookups'] }); toast(t('common.saved')); }, onError: onErr,
@@ -58,7 +59,10 @@ export default function Admin() {
       {settings && <Card title={t('admin.settings')} actions={<Button busy={saveSettings.isPending} onClick={() => saveSettings.mutate()}>{t('common.save')}</Button>}>
         <div className="grid gap-3 sm:grid-cols-2">
           {([['legal_name_en', 'admin.legalEn'], ['legal_name_ar', 'admin.legalAr'], ['vat_number', 'customer.vat'], ['cr_number', 'customer.cr'], ['address_en', 'admin.addressEn'], ['address_ar', 'admin.addressAr'],
-            ['phone', 'common.phone'], ['email', 'common.email'], ['website', 'customer.website'], ['quotation_validity_days', 'admin.validity']] as const).map(([k, l]) => (
+            ['phone', 'common.phone'], ['email', 'common.email'], ['website', 'customer.website'], ['quotation_validity_days', 'admin.validity'],
+            ['unified_number', 'admin.unified'], ['building_number', 'admin.building'], ['street', 'admin.street'], ['district', 'admin.district'], ['city', 'admin.city'],
+            ['postal_code', 'admin.postal'], ['additional_number', 'admin.additional'], ['bank_name', 'admin.bank'], ['bank_account_name', 'admin.bankAccount'], ['bank_iban', 'admin.iban'],
+            ['invoice_terms_en', 'admin.invTermsEn'], ['invoice_terms_ar', 'admin.invTermsAr']] as const).map(([k, l]) => (
             <Field key={k} label={t(l)}><Input dir={k.endsWith('_ar') ? 'rtl' : undefined} value={settings[k] ?? ''} onChange={(e) => setSettings({ ...settings, [k]: e.target.value })} /></Field>
           ))}
           <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={!!settings.allow_self_approval} onChange={(e) => setSettings({ ...settings, allow_self_approval: e.target.checked })} />{t('admin.selfApproval')}</label>

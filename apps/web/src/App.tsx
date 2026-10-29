@@ -13,6 +13,7 @@ import OpportunityDetail from './pages/OpportunityDetail';
 import QuotationDetail from './pages/QuotationDetail';
 import Templates from './pages/Templates';
 import Admin from './pages/Admin';
+import { InvoiceDetail, Invoices } from './pages/Invoices';
 import { Audit, Leads, Projects, Quotations, Suppliers, TenderDetail, Tenders } from './pages/Lists';
 
 function Guard({ perm, children }: { perm: string | string[]; children: React.ReactNode }) {
@@ -50,6 +51,8 @@ export default function App() {
         <Route path="quotations/:id" element={<Guard perm="quotations.read"><QuotationDetail /></Guard>} />
         <Route path="templates" element={<Guard perm="estimation.read"><Templates /></Guard>} />
         <Route path="projects" element={<Guard perm={['projects.read', 'contracts.read', 'quotations.award']}><Projects /></Guard>} />
+        <Route path="invoices" element={<Guard perm="invoices.read"><Invoices /></Guard>} />
+        <Route path="invoices/:id" element={<Guard perm="invoices.read"><InvoiceDetail /></Guard>} />
         <Route path="admin" element={<Guard perm="users.manage"><Admin /></Guard>} />
         <Route path="audit" element={<Guard perm="audit.read"><Audit /></Guard>} />
         <Route path="*" element={<Navigate to="/" replace />} />

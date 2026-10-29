@@ -11,6 +11,7 @@ import { date, dateTime, daysUntil, money } from '../lib/format';
 import Attachments from '../components/Attachments';
 import { CustomerSelect } from '../components/OpportunityForm';
 import { TenderFields, cleanTender } from '../components/TenderForm';
+import { BillContract } from './Invoices';
 import { Badge, Button, Card, Empty, ErrorBox, Field, Input, Modal, PageHeader, Select, Spinner, STATUS_TONE, Textarea, useToast } from '../components/ui';
 
 function Table({ head, children }: { head: React.ReactNode[]; children: React.ReactNode }) {
@@ -245,10 +246,11 @@ export function Projects() {
       </Card>
       {canContracts && <Card title={t('project.contracts')} bodyClass="p-0">
         {contracts.isLoading ? <Spinner /> : !contracts.data?.length ? <Empty /> : (
-          <Table head={[t('common.number'), t('common.title'), t('common.customer'), t('nav.quotations'), t('project.value'), t('common.date')]}>
+          <Table head={[t('common.number'), t('common.title'), t('common.customer'), t('nav.quotations'), t('project.value'), t('common.date'), '']}>
             {contracts.data.map((c: any) => (
               <tr key={c.id}><td className="td font-mono text-xs">{c.number}</td><td className="td">{c.title}</td><td className="td">{c.customer_name}</td><td className="td">{c.quotation_number}</td>
-                <td className="td num">{money(c.original_value, c.currency)}</td><td className="td">{date(c.signed_date ?? c.created_at)}</td></tr>
+                <td className="td num">{money(c.original_value, c.currency)}</td><td className="td">{date(c.signed_date ?? c.created_at)}</td>
+                <td className="td">{can('invoices.write') && <BillContract contract={c} />}</td></tr>
             ))}
           </Table>
         )}

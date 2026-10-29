@@ -29,6 +29,7 @@ export const PERMISSIONS = [
   'crm.read', 'crm.write', 'tenders.read', 'tenders.write', 'estimation.read', 'estimation.write',
   'quotations.read', 'quotations.write', 'quotations.approve', 'quotations.submit', 'quotations.award',
   'contracts.read', 'projects.read', 'settings.manage', 'users.manage', 'audit.read',
+  'invoices.read', 'invoices.write', 'invoices.issue', 'payments.write',
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 

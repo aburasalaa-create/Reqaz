@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BarChart3, Briefcase, Building2, ClipboardList, FileSpreadsheet, FileText, Inbox, KanbanSquare, LayoutTemplate, LogOut, Settings, ShieldCheck, Truck } from 'lucide-react';
+import { BarChart3, Briefcase, Building2, ClipboardList, FileSpreadsheet, FileText, Inbox, Receipt, KanbanSquare, LayoutTemplate, LogOut, Settings, ShieldCheck, Truck } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { pick } from '../lib/format';
 import { cx } from './ui';
@@ -23,6 +23,9 @@ export default function Layout() {
     ] },
     { label: t('nav.delivery'), items: [
       { to: '/projects', icon: Briefcase, label: t('nav.projects'), perm: ['contracts.read', 'projects.read', 'quotations.award'] },
+    ] },
+    { label: t('nav.finance'), items: [
+      { to: '/invoices', icon: Receipt, label: t('nav.invoices'), perm: 'invoices.read' },
     ] },
     { label: t('nav.system'), items: [
       { to: '/admin', icon: Settings, label: t('nav.admin'), perm: 'users.manage' },
