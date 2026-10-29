@@ -22,6 +22,9 @@ const en = {
     title: 'Sign in to RMS', email: 'Work email', password: 'Password', submit: 'Sign in', forgot: 'Forgot password?',
     resetSent: 'If the address is registered, a reset link has been sent.', devTitle: 'Development sign-in',
     devHint: 'Local development only: choose a seeded user.', inactive: 'Your account is not active in RMS. Ask an administrator for access.',
+    setTitle: 'Choose your password', setHint: 'Set a password to finish signing in to RMS.', newPassword: 'New password',
+    confirmPassword: 'Confirm password', savePassword: 'Save password', cancel: 'Cancel', tooShort: 'Use at least 8 characters.',
+    mismatch: 'The two passwords do not match.',
   },
   dashboard: {
     title: 'Executive dashboard', pipeline: 'Open pipeline', weighted: 'Weighted pipeline', deals: 'Open opportunities',
@@ -123,6 +126,9 @@ const ar: typeof en = {
     title: 'تسجيل الدخول إلى النظام', email: 'البريد الإلكتروني للعمل', password: 'كلمة المرور', submit: 'دخول', forgot: 'نسيت كلمة المرور؟',
     resetSent: 'إذا كان البريد مسجلاً فقد أُرسل رابط إعادة التعيين.', devTitle: 'دخول بيئة التطوير',
     devHint: 'للتطوير المحلي فقط: اختر مستخدماً تجريبياً.', inactive: 'حسابك غير مفعّل في النظام. تواصل مع مسؤول النظام.',
+    setTitle: 'اختر كلمة المرور', setHint: 'عيّن كلمة مرور لإكمال الدخول إلى النظام.', newPassword: 'كلمة المرور الجديدة',
+    confirmPassword: 'تأكيد كلمة المرور', savePassword: 'حفظ كلمة المرور', cancel: 'إلغاء', tooShort: 'استخدم 8 أحرف على الأقل.',
+    mismatch: 'كلمتا المرور غير متطابقتين.',
   },
   dashboard: {
     title: 'لوحة القيادة التنفيذية', pipeline: 'قيمة الفرص المفتوحة', weighted: 'القيمة المرجحة', deals: 'الفرص المفتوحة',

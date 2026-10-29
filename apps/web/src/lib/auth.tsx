@@ -58,7 +58,13 @@ interface AuthState {
   devSignIn: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
+  /** True after following an invite or password-reset email link: the user must choose a password first. */
+  needsPassword: boolean;
+  setPassword: (password: string) => Promise<void>;
 }
+
+// Invite and reset emails link here; Supabase signs the user in from the link, then RMS asks for a new password.
+export const SET_PASSWORD_PATHS = ['/set-password', '/reset-password'];
 
 const Ctx = createContext<AuthState | null>(null);
 const DEV_KEY = 'rms.devToken';
@@ -68,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [signedIn, setSignedIn] = useState(false);
+  const [needsPassword, setNeedsPassword] = useState(AUTH_MODE === 'supabase' && SET_PASSWORD_PATHS.includes(window.location.pathname));
 
   useEffect(() => {
     setTokenProvider(async () => {
@@ -100,7 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const sb = getSupabase();
     sb.auth.getSession().then(({ data }) => (data.session ? refresh() : setLoading(false)));
     const { data: sub } = sb.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') { setMe(null); setSignedIn(false); }
+      if (event === 'SIGNED_OUT') { setMe(null); setSignedIn(false); setNeedsPassword(false); }
+      if (event === 'PASSWORD_RECOVERY') setNeedsPassword(true);
       if (event === 'SIGNED_IN') void refresh();
     });
     return () => sub.subscription.unsubscribe();
@@ -127,7 +135,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSignedIn(false);
     },
     refresh,
-  }), [me, loading, error, signedIn, refresh]);
+    needsPassword,
+    async setPassword(password) {
+      const { error: err } = await getSupabase().auth.updateUser({ password });
+      if (err) throw err;
+      setNeedsPassword(false);
+      window.history.replaceState(null, '', '/');
+      await refresh();
+    },
+  }), [me, loading, error, signedIn, refresh, needsPassword]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

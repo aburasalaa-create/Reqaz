@@ -82,7 +82,10 @@ export default async function coreRoutes(app: FastifyInstance, { db, cfg }: { db
         return r.rows[0].id as string;
       }
       if (!cfg.SUPABASE_URL || !cfg.SUPABASE_SERVICE_ROLE_KEY) throw new HttpError(501, 'User invitations need SUPABASE_SERVICE_ROLE_KEY', 'not_configured');
-      const res = await fetch(new URL('/auth/v1/invite', cfg.SUPABASE_URL), {
+      // The invite email links back to RMS, where the new user chooses a password.
+      const inviteUrl = new URL('/auth/v1/invite', cfg.SUPABASE_URL);
+      inviteUrl.searchParams.set('redirect_to', `${cfg.APP_ORIGIN.split(',')[0].trim()}/set-password`);
+      const res = await fetch(inviteUrl, {
         method: 'POST',
         headers: { ...supabaseKeyHeaders(cfg.SUPABASE_SERVICE_ROLE_KEY), 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: body.email, data: { full_name: body.full_name } }),

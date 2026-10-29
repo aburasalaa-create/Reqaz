@@ -4,6 +4,7 @@ import { useAuth } from './lib/auth';
 import Layout from './components/Layout';
 import { Spinner } from './components/ui';
 import Login from './pages/Login';
+import SetPassword from './pages/SetPassword';
 import Dashboard from './pages/Dashboard';
 import Customers from './pages/Customers';
 import CustomerDetail from './pages/CustomerDetail';
@@ -29,8 +30,9 @@ function Home() {
 }
 
 export default function App() {
-  const { me, loading } = useAuth();
+  const { me, loading, signedIn, needsPassword } = useAuth();
   if (loading) return <Spinner />;
+  if (needsPassword && (me || signedIn)) return <SetPassword />;
   if (!me) return <Login />;
   return (
     <Routes>
