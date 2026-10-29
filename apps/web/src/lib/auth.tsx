@@ -4,27 +4,36 @@ import { api, setTokenProvider } from './api';
 
 export const AUTH_MODE = (import.meta.env.VITE_AUTH_MODE ?? 'supabase') as 'supabase' | 'dev';
 
-// Supabase URL and public key: build-time values win; otherwise the API supplies them at startup (/api/public-config).
+// Supabase URL and public key. The API's runtime values (/api/public-config) win, so fixing them needs only a
+// restart; values compiled in at build time (VITE_SUPABASE_*) are the fallback.
 let publicConfig: { supabaseUrl?: string | null; supabaseAnonKey?: string | null } = {
   supabaseUrl: import.meta.env.VITE_SUPABASE_URL, supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
 };
 
 /** Call once before rendering. Throws with a readable message if sign-in cannot be configured. */
 export async function loadPublicConfig() {
-  if (AUTH_MODE !== 'supabase' || (publicConfig.supabaseUrl && publicConfig.supabaseAnonKey)) return;
-  const res = await fetch((import.meta.env.VITE_API_URL ?? '') + '/api/public-config');
-  if (!res.ok) throw new Error(`The server did not return its sign-in settings (HTTP ${res.status}).`);
-  const remote = await res.json();
-  publicConfig = { supabaseUrl: publicConfig.supabaseUrl || remote.supabaseUrl, supabaseAnonKey: publicConfig.supabaseAnonKey || remote.supabaseAnonKey };
+  if (AUTH_MODE !== 'supabase') return;
+  const res = await fetch((import.meta.env.VITE_API_URL ?? '') + '/api/public-config').catch(() => null);
+  if (res?.ok) {
+    const remote = await res.json();
+    publicConfig = { supabaseUrl: remote.supabaseUrl || publicConfig.supabaseUrl, supabaseAnonKey: remote.supabaseAnonKey || publicConfig.supabaseAnonKey };
+  } else if (!publicConfig.supabaseUrl || !publicConfig.supabaseAnonKey) {
+    throw new Error(`The server did not return its sign-in settings (HTTP ${res?.status ?? 'no response'}).`);
+  }
   getSupabase();
 }
 
 let supabase: SupabaseClient | null = null;
 export function getSupabase() {
   if (!supabase) {
-    const { supabaseUrl: url, supabaseAnonKey: key } = publicConfig;
+    const url = publicConfig.supabaseUrl?.trim();
+    const key = publicConfig.supabaseAnonKey?.trim();
     if (!url || !key) throw new Error('Sign-in is not configured: set SUPABASE_URL and SUPABASE_ANON_KEY (or VITE_SUPABASE_ANON_KEY) on the server.');
-    supabase = createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true } });
+    try {
+      supabase = createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true } });
+    } catch (e: any) {
+      throw new Error(`Sign-in settings are invalid (Supabase URL "${url}"): ${e?.message ?? e}`);
+    }
   }
   return supabase;
 }
