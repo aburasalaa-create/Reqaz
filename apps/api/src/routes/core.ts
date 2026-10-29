@@ -5,6 +5,7 @@ import { supabaseKeyHeaders } from '../storage.js';
 import { HttpError } from '../errors.js';
 import type { Config } from '../config.js';
 import { idParam, optText, requirePermission, tx, updateOrFail } from './util.js';
+import { createHash } from 'node:crypto';
 
 export default async function coreRoutes(app: FastifyInstance, { db, cfg }: { db: Db; cfg: Config }) {
   app.get('/me', async (req) => tx(db, req, async (t) => {
@@ -149,6 +150,38 @@ export default async function coreRoutes(app: FastifyInstance, { db, cfg }: { db
       return r.rows[0];
     });
   });
+
+  // Company stamp (PNG/JPEG, ≤ 1 MB): stored in the database and printed on issued invoices only.
+  app.put('/admin/brand-assets/stamp', async (req) => {
+    const part = await req.file();
+    if (!part) throw new HttpError(400, 'No file uploaded', 'validation');
+    if (!['image/png', 'image/jpeg'].includes(part.mimetype)) throw new HttpError(415, 'The stamp must be a PNG or JPEG image', 'unsupported_type');
+    const data = await part.toBuffer();
+    if (part.file.truncated || data.length > 1048576) throw new HttpError(413, 'The stamp image must be 1 MB or smaller', 'too_large');
+    const sha = createHash('sha256').update(data).digest('hex');
+    return tx(db, req, async (t) => {
+      await requirePermission(t, 'settings.manage');
+      await t.query(`insert into public.brand_assets (code, mime_type, data, sha256) values ('stamp', $1, $2, $3)
+        on conflict (code) do update set mime_type = excluded.mime_type, data = excluded.data, sha256 = excluded.sha256,
+          uploaded_by = auth.uid(), uploaded_at = now()`, [part.mimetype, data, sha]);
+      return one(t, `select code, mime_type, sha256, octet_length(data) as bytes, uploaded_at from public.brand_assets where code = 'stamp'`);
+    });
+  });
+
+  app.get('/admin/brand-assets/stamp', async (req, reply) => {
+    const row = await tx(db, req, async (t) => {
+      await requirePermission(t, 'settings.manage');
+      return one<{ mime_type: string; data: Buffer }>(t, `select mime_type, data from public.brand_assets where code = 'stamp'`);
+    });
+    if (!row) throw new HttpError(404, 'No stamp uploaded', 'not_found');
+    return reply.header('Content-Type', row.mime_type).header('Cache-Control', 'no-store').send(row.data);
+  });
+
+  app.delete('/admin/brand-assets/stamp', async (req) => tx(db, req, async (t) => {
+    await requirePermission(t, 'settings.manage');
+    await t.query(`delete from public.brand_assets where code = 'stamp'`);
+    return { ok: true };
+  }));
 
   app.get('/audit', async (req) => {
     const q = z.object({ table: z.string().max(64).optional(), record_id: z.string().max(64).optional(), limit: z.coerce.number().int().min(1).max(500).default(100) }).parse(req.query);

@@ -37,6 +37,20 @@ describe('company bank accounts', () => {
   });
 });
 
+describe('company stamp', () => {
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+  const form = (type = 'image/png', body: Buffer = png) => { const f = new FormData(); f.append('file', new Blob([new Uint8Array(body)], { type }), 'stamp.png'); return f; };
+  it('only settings managers can upload it; images only', async () => {
+    expect((await s.call('finance', 'PUT', '/admin/brand-assets/stamp', form())).status).toBe(403);
+    expect((await s.call('admin', 'PUT', '/admin/brand-assets/stamp', form('application/pdf'))).status).toBe(415);
+    const ok = await s.call('admin', 'PUT', '/admin/brand-assets/stamp', form());
+    expect(ok.status).toBe(200);
+    expect(ok.data.bytes).toBe(png.length);
+    const got = await s.call('admin', 'GET', '/admin/brand-assets/stamp');
+    expect(Buffer.compare(got.data, png)).toBe(0);
+  });
+});
+
 describe('customer invoices', () => {
   it('finance prepares a draft with deterministic totals', async () => {
     const inv = await s.call('finance', 'POST', '/invoices', { customer_id: AL_NOOR, title: 'Civil works — March', retention_pct: '10' });

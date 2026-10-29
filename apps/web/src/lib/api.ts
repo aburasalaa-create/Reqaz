@@ -57,3 +57,11 @@ export const qs = (o: Record<string, string | number | boolean | undefined | nul
   const s = p.toString();
   return s ? `?${s}` : '';
 };
+
+/** Fetch a protected image and return an object URL for <img src>. */
+export async function fetchBlobUrl(path: string): Promise<string> {
+  const token = await tokenProvider();
+  const res = await fetch(BASE + path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) throw new ApiError(res.status, res.statusText);
+  return URL.createObjectURL(await res.blob());
+}

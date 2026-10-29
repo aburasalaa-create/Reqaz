@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react';
 import { api } from '../lib/api';
 import { pick } from '../lib/format';
 import { Badge, Button, Card, ErrorBox, Field, Input, Modal, PageHeader, Spinner, useToast } from '../components/ui';
+import StampSetting from '../components/StampSetting';
 
 export default function Admin() {
   const { t } = useTranslation();
@@ -82,6 +83,7 @@ export default function Admin() {
             })}
             <Button variant="secondary" onClick={() => setSettings({ ...settings, bank_accounts: [...(settings.bank_accounts ?? []), { bank_name: '', iban: '', show_on_invoices: true }] })}>{t('admin.addBank')}</Button>
           </div>
+          <StampSetting />
           <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={!!settings.allow_self_approval} onChange={(e) => setSettings({ ...settings, allow_self_approval: e.target.checked })} />{t('admin.selfApproval')}</label>
         </div>
       </Card>}

@@ -70,8 +70,10 @@ async function loadInvoiceDocument(t: Tx, id: string) {
   const original = invoice.original_invoice_id ? await one(t, 'select number, issue_date from public.invoices where id = $1', [invoice.original_invoice_id]) : null;
   const contract = invoice.contract_id ? await one(t, 'select number from public.contracts where id = $1', [invoice.contract_id]) : null;
   const project = invoice.project_id ? await one(t, 'select number, name from public.projects where id = $1', [invoice.project_id]) : null;
+  const stampRow = issued ? await one<{ mime_type: string; data: Buffer }>(t, `select mime_type, data from public.brand_assets where code = 'stamp'`) : null;
+  const stampDataUrl = stampRow ? `data:${stampRow.mime_type};base64,${stampRow.data.toString('base64')}` : null;
   const qrDataUrl = invoice.zatca_qr ? await QRCode.toDataURL(invoice.zatca_qr, { errorCorrectionLevel: 'M', margin: 1, width: 360 }) : null;
-  return { invoice, lines, seller, buyer, original, contract, project, qrDataUrl };
+  return { invoice, lines, seller, buyer, original, contract, project, qrDataUrl, stampDataUrl };
 }
 
 const fileName = (inv: any) => {

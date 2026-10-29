@@ -12,6 +12,7 @@ export interface InvoiceDoc {
   contract?: any;
   project?: any;
   qrDataUrl?: string | null;
+  stampDataUrl?: string | null;  // printed only on issued documents
 }
 
 const TITLES: Record<string, [string, string]> = {
@@ -135,6 +136,7 @@ table.tot{border-collapse:collapse;min-width:88mm}
 .bankrow{margin-top:1mm}
 .words{margin-top:2.5mm;padding:2mm 2.5mm;background:#f6f3ef;border-inline-start:3px solid #C1A287}
 .foot{margin-top:6mm;display:flex;gap:10mm;page-break-inside:avoid}.foot>div{flex:1;border-top:1px solid #999;padding-top:1.5mm;color:#404040}
+.stamp{display:block;width:32mm;margin:2mm auto 0;transform:rotate(-6deg);opacity:.92}
 .watermark{position:fixed;top:40%;left:0;right:0;text-align:center;font-size:64pt;color:rgba(200,0,0,.10);transform:rotate(-28deg);font-weight:700;z-index:-1}
 </style></head><body>
 ${draft ? `<div class="watermark">${inv.status === 'cancelled' ? 'CANCELLED' : 'DRAFT'}</div>` : ''}
@@ -174,6 +176,6 @@ ${inv.title ? `<div class="box"><strong>${esc(inv.title)}</strong></div>` : ''}
     <div class="words">${lang !== 'ar' ? `<div>${esc(amountInWords(wordsAmount, 'en', inv.currency))}</div>` : ''}${lang !== 'en' ? `<div class="ar" dir="rtl">${esc(amountInWords(wordsAmount, 'ar', inv.currency))}</div>` : ''}</div>
   </div>
 </div>
-<div class="foot"><div>${L1('Prepared by', 'إعداد')}</div><div>${L1('Approved by', 'اعتماد')}</div><div>${L1('Received by (customer)', 'استلام العميل')}</div></div>
+<div class="foot"><div>${L1('Prepared by', 'إعداد')}</div><div class="stampcell">${L1('Approved by', 'اعتماد')}${!draft && doc.stampDataUrl ? `<img class="stamp" src="${doc.stampDataUrl}" alt="">` : ''}</div><div>${L1('Received by (customer)', 'استلام العميل')}</div></div>
 </body></html>`;
 }
