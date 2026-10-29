@@ -19,6 +19,7 @@ import quotationRoutes from './routes/quotations.js';
 import templateRoutes from './routes/templates.js';
 import attachmentRoutes from './routes/attachments.js';
 import invoiceRoutes from './routes/invoices.js';
+import procurementRoutes from './routes/procurement.js';
 
 export interface AppDeps {
   cfg: Config;
@@ -74,6 +75,7 @@ export async function buildApp({ cfg, db, storage, pdf, verifier }: AppDeps) {
       await secured.register(templateRoutes, { db });
       await secured.register(attachmentRoutes, { db, storage });
       await secured.register(invoiceRoutes, { db, storage, pdf });
+      await secured.register(procurementRoutes, { db, storage, pdf });
     });
   }, { prefix: '/api' });
 
