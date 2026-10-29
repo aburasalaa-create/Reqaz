@@ -41,6 +41,8 @@ test('CRM to quotation to contract through the UI', async ({ browser }) => {
   await sales.locator('select[name=customer_id]').selectOption({ label: `${customerName} — شركة البنائين` });
   await sales.locator('input[name=expected_value]').fill('1500000');
   await sales.getByRole('button', { name: 'Create' }).click();
+  // Wait for the detail page itself: the new number also appears on the pipeline card before navigation finishes.
+  await sales.waitForURL(/\/opportunities\/[0-9a-f-]{36}$/);
   await expect(sales.getByText(/OPP-\d{4}-\d{4}/).first()).toBeVisible();
   const oppUrl = sales.url();
 
@@ -54,11 +56,13 @@ test('CRM to quotation to contract through the UI', async ({ browser }) => {
   await sales.mouse.down();
   await sales.mouse.move(box.x + 60, box.y + 40, { steps: 5 });
   await sales.mouse.move(target.x + target.width / 2, target.y + 60, { steps: 15 });
+  const moved = sales.waitForResponse((r) => r.request().method() === 'PATCH' && /\/api\/opportunities\//.test(r.url()));
   await sales.mouse.up();
+  expect((await moved).ok()).toBe(true);
   await expect(sales.getByTestId('col-qualified').locator('[data-testid^=opp-card]').filter({ hasText: `Showroom fit-out ${stamp}` })).toBeVisible();
 
   await sales.goto(oppUrl);
-  await expect(sales.getByText('Qualified').first()).toBeVisible();
+  await expect(sales.getByRole('heading', { level: 1 }).getByText('Qualified')).toBeVisible();
   await sales.getByRole('button', { name: 'Record tender' }).click();
   await sales.locator('.fixed input[name=title]').fill('Showroom RFQ');
   await sales.locator('input[name=client_reference]').fill(`RFQ-${stamp}`);
