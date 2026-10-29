@@ -22,6 +22,21 @@ function decodeTlv(b64: string) {
 beforeAll(async () => { s = await startServer(); });
 afterAll(async () => { await s.close(); });
 
+describe('company bank accounts', () => {
+  it('validates IBANs and stores several accounts', async () => {
+    const bad = await s.call('admin', 'PATCH', '/admin/settings', { bank_accounts: [{ bank_name: 'Test Bank', iban: 'SA12' }] });
+    expect(bad.status).toBe(400);
+    const ok = await s.call('admin', 'PATCH', '/admin/settings', { bank_accounts: [
+      { bank_name: 'Test Bank A', iban: 'sa00 0000 0000 0000 0000 0001'.replace(/\s+/g, '') },
+      { bank_name: 'Test Bank B', iban: 'SA0000000000000000000002', show_on_invoices: false },
+    ] });
+    expect(ok.status).toBe(200);
+    expect(ok.data.bank_accounts).toHaveLength(2);
+    expect(ok.data.bank_accounts[0]).toMatchObject({ iban: 'SA0000000000000000000001', show_on_invoices: true });
+    expect((await s.call('finance', 'PATCH', '/admin/settings', { bank_accounts: [] })).status).toBe(403);
+  });
+});
+
 describe('customer invoices', () => {
   it('finance prepares a draft with deterministic totals', async () => {
     const inv = await s.call('finance', 'POST', '/invoices', { customer_id: AL_NOOR, title: 'Civil works — March', retention_pct: '10' });
@@ -94,6 +109,7 @@ describe('customer invoices', () => {
     expect(r.data.status).toBe('issued');
     expect(r.data.number).toMatch(/^INV-\d{4}-00001$/);
     expect(r.data.seller_snapshot.vat_number).toBe('300000000000003');
+    expect(r.data.seller_snapshot.bank_accounts).toHaveLength(2);
     expect(r.data.buyer_snapshot).toMatchObject({ name_en: 'Al Noor Real Estate Development', vat_number: '310000000000003', city: 'Riyadh' });
     expect(r.data.due_date).toBeTruthy();
     expect(r.data.pdf_attachment_id).toBeTruthy();

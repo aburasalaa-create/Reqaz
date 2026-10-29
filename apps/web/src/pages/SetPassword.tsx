@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../lib/auth';
 import { Button, ErrorBox, Field, Input } from '../components/ui';
+import { AuthScreen } from '../components/Brand';
 
 // Shown after an invite or password-reset link signs the user in, before any other page.
 export default function SetPassword() {
@@ -21,10 +22,10 @@ export default function SetPassword() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-900 to-brand-700 p-4">
-      <form onSubmit={submit} className="w-full max-w-md space-y-3 rounded-xl bg-white p-6 shadow-2xl">
+    <AuthScreen>
+      <form onSubmit={submit} className="space-y-3">
         <div>
-          <div className="text-lg font-semibold text-brand-800">{t('login.setTitle')}</div>
+          <div className="text-lg font-medium text-ink">{t('login.setTitle')}</div>
           <div className="text-sm text-slate-500">{t('login.setHint')}</div>
         </div>
         <ErrorBox error={error} />
@@ -35,6 +36,6 @@ export default function SetPassword() {
           <Button type="submit" busy={busy}>{t('login.savePassword')}</Button>
         </div>
       </form>
-    </div>
+    </AuthScreen>
   );
 }

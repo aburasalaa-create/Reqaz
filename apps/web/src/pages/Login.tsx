@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { AUTH_MODE, getSupabase, useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import { Button, ErrorBox, Field, Input } from '../components/ui';
+import { AuthScreen } from '../components/Brand';
 
 export default function Login() {
   const { t, i18n } = useTranslation();
@@ -30,11 +31,10 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-900 to-brand-700 p-4">
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
+    <AuthScreen>
         <div className="mb-5 flex items-center justify-between">
           <div>
-            <div className="text-lg font-semibold text-brand-800">{i18n.language === 'ar' ? 'ركاز المتحدة للمقاولات' : 'Reqaz United Contracting'}</div>
+            <div className="text-lg font-medium text-ink">{i18n.language === 'ar' ? 'ركاز المتحدة للمقاولات' : 'Reqaz United Contracting'}</div>
             <div className="text-sm text-slate-500">{t('login.title')}</div>
           </div>
           <button className="rounded border px-2 py-1 text-xs" onClick={() => i18n.changeLanguage(i18n.language === 'ar' ? 'en' : 'ar')}>{t('common.language')}</button>
@@ -67,7 +67,6 @@ export default function Login() {
             </div>
           </form>
         )}
-      </div>
-    </div>
+    </AuthScreen>
   );
 }

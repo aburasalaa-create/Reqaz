@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 @layer base {
-  html[dir='rtl'] body { font-family: 'Noto Sans Arabic', 'Noto Sans', system-ui, sans-serif; }
+  html[dir='rtl'] body { font-family: 'Noto Sans Arabic', 'Jost', system-ui, sans-serif; }
   input, select, textarea { @apply text-sm; }
 }
 @layer components {

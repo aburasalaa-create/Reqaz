@@ -1,9 +1,10 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BarChart3, Briefcase, Building2, ClipboardList, FileSpreadsheet, FileText, Inbox, Receipt, KanbanSquare, LayoutTemplate, LogOut, Settings, ShieldCheck, Truck } from 'lucide-react';
+import { BarChart3, Briefcase, Building2, ClipboardList, FileText, Inbox, Receipt, KanbanSquare, LayoutTemplate, LogOut, Settings, ShieldCheck, Truck } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { pick } from '../lib/format';
 import { cx } from './ui';
+import { BrandLockup } from './Brand';
 
 export default function Layout() {
   const { t, i18n } = useTranslation();
@@ -37,13 +38,7 @@ export default function Layout() {
   return (
     <div className="flex min-h-screen">
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-e border-slate-200 bg-white md:flex">
-        <div className="flex items-center gap-2 border-b px-4 py-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded bg-brand-700 text-sm font-bold text-white"><FileSpreadsheet className="h-4 w-4" /></div>
-          <div className="leading-tight">
-            <div className="text-sm font-semibold text-slate-900">{i18n.language === 'ar' ? 'ركاز المتحدة' : 'Reqaz United'}</div>
-            <div className="text-xs text-slate-500">{t('app.name')}</div>
-          </div>
-        </div>
+        <div className="border-b border-sand px-4 py-3"><BrandLockup subtitle={t('app.name')} /></div>
         <nav className="flex-1 overflow-y-auto px-2 py-3">
           {groups.map((g) => {
             const items = g.items.filter((i) => allowed(i.perm));
@@ -72,7 +67,7 @@ export default function Layout() {
       </aside>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between border-b bg-white px-4 py-2 md:hidden">
-          <span className="font-semibold">RMS</span>
+          <span className="text-sm font-medium tracking-[0.45em] text-ink">REQAZ</span>
           <button className="rounded border px-2 py-1 text-xs" onClick={() => i18n.changeLanguage(i18n.language === 'ar' ? 'en' : 'ar')}>{t('common.language')}</button>
         </div>
         <main className="mx-auto max-w-[1400px] p-4 md:p-6"><Outlet /></main>

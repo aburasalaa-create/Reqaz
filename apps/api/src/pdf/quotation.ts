@@ -10,11 +10,13 @@ export type PdfLanguage = 'bilingual' | 'en' | 'ar';
 
 const require = createRequire(import.meta.url);
 const font = (pkg: string, file: string) => readFileSync(require.resolve(`${pkg}/files/${file}`)).toString('base64');
-export const LOGO = `data:image/png;base64,${readFileSync(new URL('../../assets/reqaz-logo.png', import.meta.url)).toString('base64')}`;
+export const LOGO = `data:image/svg+xml;base64,${readFileSync(new URL('../../assets/reqaz-logo.svg', import.meta.url)).toString('base64')}`;
 
 let fontCss: string | null = null;
 export function fonts() {
   fontCss ??= [
+    ['Jost', '@fontsource/jost', 'jost-latin-400-normal.woff2', 400],
+    ['Jost', '@fontsource/jost', 'jost-latin-700-normal.woff2', 700],
     ['Noto Sans', '@fontsource/noto-sans', 'noto-sans-latin-400-normal.woff2', 400],
     ['Noto Sans', '@fontsource/noto-sans', 'noto-sans-latin-700-normal.woff2', 700],
     ['Noto Sans Arabic', '@fontsource/noto-sans-arabic', 'noto-sans-arabic-arabic-400-normal.woff2', 400],
@@ -228,27 +230,27 @@ export function renderQuotationHtml(doc: QuotationDoc, opts: { language: PdfLang
 ${fonts()}
 @page{size:A4;margin:14mm 12mm 16mm}
 *{box-sizing:border-box}
-body{font-family:'Noto Sans','Noto Sans Arabic',sans-serif;font-size:9.5pt;color:#1a1a1a;margin:0;line-height:1.45}
-.ar{font-family:'Noto Sans Arabic','Noto Sans',sans-serif;unicode-bidi:isolate}
+body{font-family:'Jost','Noto Sans','Noto Sans Arabic',sans-serif;font-size:9.5pt;color:#1a1a1a;margin:0;line-height:1.45}
+.ar{font-family:'Noto Sans Arabic','Jost',sans-serif;unicode-bidi:isolate}
 .page{page-break-after:always;position:relative}
 .page:last-of-type{page-break-after:auto}
 .muted{color:#595959;font-weight:400}
 .cover{min-height:255mm;display:flex;flex-direction:column}
 .logo-lg{width:34mm;margin:18mm auto 22mm;display:block}
-.proposal-for{font-size:16pt;font-weight:700;color:#C49A72}
-.cover-title{font-size:22pt;font-weight:700;color:#1F3A33;margin:4mm 0 3mm;line-height:1.25}
+.proposal-for{font-size:16pt;font-weight:700;color:#C1A287}
+.cover-title{font-size:22pt;font-weight:700;color:#58595B;margin:4mm 0 3mm;line-height:1.25}
 .cover-sub{font-size:12pt;color:#595959;margin-bottom:14mm}
 .cover-meta{border-collapse:collapse;margin-top:10mm;font-size:10.5pt}
 .cover-meta th{text-align:start;padding:2mm 8mm 2mm 0;white-space:nowrap;vertical-align:top}
 .cover-meta td{padding:2mm 0}
-.cover-foot{margin-top:auto;display:flex;justify-content:space-between;color:#595959;font-size:8.5pt;border-top:1px solid #C49A72;padding-top:3mm}
+.cover-foot{margin-top:auto;display:flex;justify-content:space-between;color:#595959;font-size:8.5pt;border-top:1px solid #C1A287;padding-top:3mm}
 .cover-foot .end{text-align:end}
 .pwrap{width:100%;border-collapse:collapse}.pwrap>thead>tr>td,.pwrap>tbody>tr>td{padding:0}
-.phead{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #C49A72;padding-bottom:2mm;margin-bottom:6mm}
+.phead{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #C1A287;padding-bottom:2mm;margin-bottom:6mm}
 .logo-sm{height:15mm}
 .pco{text-align:end;color:#404040;font-size:9pt}
-h2{font-size:12pt;color:#1F3A33;margin:4.5mm 0 2mm;padding-bottom:1mm;border-bottom:1px solid #e3e3e3}
-.h-blue{font-size:13pt;font-weight:700;color:#2F5D8A}
+h2{font-size:12pt;color:#58595B;margin:4.5mm 0 2mm;padding-bottom:1mm;border-bottom:1px solid #e3e3e3}
+.h-blue{font-size:13pt;font-weight:700;color:#6D6968}
 .h-red{font-size:12pt;font-weight:700;color:#C00000;margin-bottom:5mm}
 .refbox{margin-inline-start:auto;border-collapse:collapse;margin-bottom:8mm}
 .refbox th{text-align:start;padding:1mm 4mm 1mm 0}.refbox td{color:#595959}
@@ -257,32 +259,32 @@ h2{font-size:12pt;color:#1F3A33;margin:4.5mm 0 2mm;padding-bottom:1mm;border-bot
 .letter .cols>div{line-height:1.6}
 .sign-block{margin-top:8mm}
 .cols{display:flex;gap:8mm}.cols>div{flex:1}
-.lump{display:flex;align-items:baseline;gap:4mm;justify-content:center;margin:6mm 0;padding:3mm;border:1px solid #C49A72;background:#fbf6f1;font-size:11pt}
+.lump{display:flex;align-items:baseline;gap:4mm;justify-content:center;margin:6mm 0;padding:3mm;border:1px solid #C1A287;background:#f6f3ef;font-size:11pt}
 .lump strong{font-size:14pt}
 ol.list{margin:0;padding-inline-start:6mm}ol.list li{margin:.6mm 0}
 ul.dash{margin:0;padding-inline-start:5mm;list-style:'- '}ul.dash li{margin:.6mm 0}
 table.grid{width:100%;border-collapse:collapse;margin:1mm 0 2mm}
-.grid th{background:#1F3A33;color:#fff;text-align:start;padding:1.6mm 2mm;font-size:8.5pt}
+.grid th{background:#58595B;color:#fff;text-align:start;padding:1.6mm 2mm;font-size:8.5pt}
 .grid td{border-bottom:1px solid #e3e3e3;padding:1.4mm 2mm;vertical-align:top}
-.grid .tot td{font-weight:700;border-top:1.5px solid #1F3A33}
+.grid .tot td{font-weight:700;border-top:1.5px solid #58595B}
 .grid td.ok{color:#1E7B34;font-weight:700}.grid td.warn{color:#C00000;font-weight:700}
 .ms{margin-top:2mm}
 .kvs{margin-top:4mm}.kv{display:flex;gap:4mm;margin:1.8mm 0;page-break-inside:avoid}.kv .k{width:34mm;flex:none;font-weight:700}.kv .v{flex:1}
 .fhead{width:100%;margin:2mm 0 4mm;font-size:9pt}.fhead td{vertical-align:top;width:50%;line-height:1.6}
 table.boq{width:100%;border-collapse:collapse}
-.boq th{background:#2F5D8A;color:#fff;padding:1.8mm;font-size:8.5pt;text-align:start}
+.boq th{background:#6D6968;color:#fff;padding:1.8mm;font-size:8.5pt;text-align:start}
 .boq td{padding:1.4mm 1.8mm;border-bottom:1px solid #e6e6e6;vertical-align:top}
 .boq tr{page-break-inside:avoid}
 .boq tr.main,.boq tr.sect{break-after:avoid;page-break-after:avoid}
-.boq tr.main td{font-weight:700;background:#f2f5f9;border-top:1px solid #c9d3df}
-.boq tr.sect td{font-weight:700;background:#f2f5f9}
+.boq tr.main td{font-weight:700;background:#f3f1ee;border-top:1px solid #e7e2da}
+.boq tr.sect td{font-weight:700;background:#f3f1ee}
 .sub-ar{color:#444;margin-top:.5mm}
 .c{text-align:center}.n{text-align:end;white-space:nowrap;font-variant-numeric:tabular-nums}
 .boq th.n{text-align:end}.boq th.c{text-align:center}
 .totals{margin-inline-start:auto;margin-top:3mm;border-collapse:collapse;min-width:80mm}
 .totals td{padding:1.4mm 2.5mm}.totals td:first-child{font-weight:700}
-.totals tr.net td{border-top:2px solid #2F5D8A;font-weight:700;font-size:11pt}
-.words{margin-top:5mm;padding:2.5mm 3mm;background:#f6f6f6;border-inline-start:3px solid #C49A72}
+.totals tr.net td{border-top:2px solid #6D6968;font-weight:700;font-size:11pt}
+.words{margin-top:5mm;padding:2.5mm 3mm;background:#f6f6f6;border-inline-start:3px solid #C1A287}
 .po{margin-top:6mm;font-weight:700}
 .closing{page-break-inside:avoid}
 .sign{display:flex;gap:10mm;margin-top:10mm;page-break-inside:avoid}.sign>div{flex:1;border-top:1px solid #999;padding-top:2mm}

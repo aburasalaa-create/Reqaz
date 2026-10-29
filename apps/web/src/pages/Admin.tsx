@@ -27,7 +27,8 @@ export default function Admin() {
     mutationFn: () => api.patch('/admin/settings', {
       legal_name_en: settings.legal_name_en, legal_name_ar: settings.legal_name_ar, vat_number: settings.vat_number ?? '', cr_number: settings.cr_number ?? '',
       address_en: settings.address_en ?? '', address_ar: settings.address_ar ?? '', phone: settings.phone ?? '', email: settings.email ?? '', website: settings.website ?? '',
-      ...Object.fromEntries(['unified_number','building_number','street','district','city','postal_code','additional_number','bank_name','bank_account_name','bank_iban','invoice_terms_en','invoice_terms_ar'].map((k) => [k, settings[k] ?? ''])),
+      ...Object.fromEntries(['unified_number','building_number','street','district','city','postal_code','additional_number','invoice_terms_en','invoice_terms_ar'].map((k) => [k, settings[k] ?? ''])),
+      bank_accounts: (settings.bank_accounts ?? []).filter((b: any) => b.bank_name || b.iban),
       quotation_validity_days: Number(settings.quotation_validity_days), allow_self_approval: !!settings.allow_self_approval,
     }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['lookups'] }); toast(t('common.saved')); }, onError: onErr,
@@ -61,10 +62,26 @@ export default function Admin() {
           {([['legal_name_en', 'admin.legalEn'], ['legal_name_ar', 'admin.legalAr'], ['vat_number', 'customer.vat'], ['cr_number', 'customer.cr'], ['address_en', 'admin.addressEn'], ['address_ar', 'admin.addressAr'],
             ['phone', 'common.phone'], ['email', 'common.email'], ['website', 'customer.website'], ['quotation_validity_days', 'admin.validity'],
             ['unified_number', 'admin.unified'], ['building_number', 'admin.building'], ['street', 'admin.street'], ['district', 'admin.district'], ['city', 'admin.city'],
-            ['postal_code', 'admin.postal'], ['additional_number', 'admin.additional'], ['bank_name', 'admin.bank'], ['bank_account_name', 'admin.bankAccount'], ['bank_iban', 'admin.iban'],
+            ['postal_code', 'admin.postal'], ['additional_number', 'admin.additional'],
             ['invoice_terms_en', 'admin.invTermsEn'], ['invoice_terms_ar', 'admin.invTermsAr']] as const).map(([k, l]) => (
             <Field key={k} label={t(l)}><Input dir={k.endsWith('_ar') ? 'rtl' : undefined} value={settings[k] ?? ''} onChange={(e) => setSettings({ ...settings, [k]: e.target.value })} /></Field>
           ))}
+          <div className="sm:col-span-2">
+            <div className="label">{t('admin.banks')}</div>
+            {(settings.bank_accounts ?? []).map((b: any, i: number) => {
+              const set = (k: string, v: unknown) => setSettings({ ...settings, bank_accounts: settings.bank_accounts.map((x: any, j: number) => (j === i ? { ...x, [k]: v } : x)) });
+              return (
+                <div key={i} className="mb-2 grid gap-2 rounded-md border p-2 sm:grid-cols-[1fr_1.4fr_1fr_auto_auto]">
+                  <Input placeholder={t('admin.bank')} value={b.bank_name ?? ''} onChange={(e) => set('bank_name', e.target.value)} />
+                  <Input placeholder={t('admin.iban')} value={b.iban ?? ''} onChange={(e) => set('iban', e.target.value.replace(/\s+/g, ''))} />
+                  <Input placeholder={t('admin.accountNo')} value={b.account_number ?? ''} onChange={(e) => set('account_number', e.target.value)} />
+                  <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={b.show_on_invoices !== false} onChange={(e) => set('show_on_invoices', e.target.checked)} />{t('admin.onInvoices')}</label>
+                  <Button variant="ghost" onClick={() => setSettings({ ...settings, bank_accounts: settings.bank_accounts.filter((_: any, j: number) => j !== i) })}>{t('common.delete')}</Button>
+                </div>
+              );
+            })}
+            <Button variant="secondary" onClick={() => setSettings({ ...settings, bank_accounts: [...(settings.bank_accounts ?? []), { bank_name: '', iban: '', show_on_invoices: true }] })}>{t('admin.addBank')}</Button>
+          </div>
           <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={!!settings.allow_self_approval} onChange={(e) => setSettings({ ...settings, allow_self_approval: e.target.checked })} />{t('admin.selfApproval')}</label>
         </div>
       </Card>}

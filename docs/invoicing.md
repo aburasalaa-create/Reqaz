@@ -23,3 +23,13 @@
 
 ## Applying to an existing Supabase project
 Run `supabase/migrations/20261029000006_invoicing.sql` once in the SQL Editor.
+
+## Brand identity
+- Colours come from the Reqaz brand guideline:
+  - gold #C1A287
+  - sand #E7E2DA
+  - grey #6D6968 (Pantone 424 C)
+  - dark grey #58595B (Pantone 425 C)
+  - near-black #1C1C1D for the dark screens
+- The logos are SVGs in `apps/web/src/assets/brand` and `apps/api/assets/reqaz-logo.svg`.
+- The guideline fonts (Circe, Room, Noto IKEA Arabic) are commercial and are not in this repository. The app and PDFs use Jost and Noto Sans Arabic instead, which have open licences and a similar geometric style. The licensed fonts can replace them once Reqaz confirms its licence covers web and server (PDF) embedding.
