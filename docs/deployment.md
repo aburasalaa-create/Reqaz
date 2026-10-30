@@ -98,3 +98,12 @@ npm run dev:web                          # VITE_AUTH_MODE=dev → pick a seeded 
 npm test                                 # unit + API tests (resets rms_test)
 npm run test:e2e                         # browser test, CRM → quotation → award
 ```
+
+## Automatic staging releases
+
+Every push to `main` runs the tests; when they pass, the `deploy` job in `.github/workflows/ci.yml`:
+
+1. runs `scripts/migrate.mjs`, which applies new files from `supabase/migrations` in their own transactions and records them in `public.schema_migrations` (a database set up by hand is recognised on the first run), then
+2. calls the Render deploy hook.
+
+One-time setup: in Render set the service branch to `main`, turn Auto-Deploy off and copy the Deploy Hook URL. In GitHub → Settings → Secrets and variables → Actions add `RENDER_DEPLOY_HOOK_URL` (the hook) and `STAGING_DATABASE_URL` (the same value as `DATABASE_URL` in Render).
