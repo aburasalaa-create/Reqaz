@@ -3,17 +3,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Download, Paperclip, Trash2 } from 'lucide-react';
 import { api, qs } from '../lib/api';
+import { useAuth } from '../lib/auth';
 import { dateTime } from '../lib/format';
 import { Button, Card, Empty, useToast } from './ui';
 
 export default function Attachments({ entityType, entityId, canWrite }: { entityType: string; entityId: string; canWrite: boolean }) {
   const { t } = useTranslation();
+  const { me } = useAuth();
   const toast = useToast();
   const qc = useQueryClient();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const key = ['attachments', entityType, entityId];
-  const { data = [] } = useQuery({ queryKey: key, queryFn: () => api.get(`/attachments${qs({ entity_type: entityType, entity_id: entityId })}`) });
+  const { data = [] } = useQuery({ queryKey: key, queryFn: () => api.get(`/attachments${qs({ entity_type: entityType, entity_id: entityId })}`), enabled: me?.files_enabled !== false });
   const del = useMutation({
     mutationFn: (id: string) => api.del(`/attachments/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: key }),
@@ -38,6 +40,8 @@ export default function Attachments({ entityType, entityId, canWrite }: { entity
     }
   };
 
+  // File storage switched off on this server: nothing to show or upload.
+  if (me?.files_enabled === false) return null;
   return (
     <Card title={<span className="inline-flex items-center gap-1"><Paperclip className="h-4 w-4" />{t('common.attachments')}</span>} bodyClass="p-0"
       actions={canWrite && (<>

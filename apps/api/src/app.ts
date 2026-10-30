@@ -32,6 +32,7 @@ export interface AppDeps {
 }
 
 export async function buildApp({ cfg, db, storage, pdf, verifier }: AppDeps) {
+  const files = cfg.FILE_STORAGE === 'on';
   const app = Fastify({
     logger: cfg.NODE_ENV === 'test' ? false : { level: 'info', redact: ['req.headers.authorization'] },
     bodyLimit: 2 * 1024 * 1024,
@@ -78,14 +79,14 @@ export async function buildApp({ cfg, db, storage, pdf, verifier }: AppDeps) {
 
     await api.register(async (secured) => {
       secured.addHook('onRequest', authHook(verify));
-      await secured.register(coreRoutes, { db, cfg });
+      await secured.register(coreRoutes, { db, cfg, files });
       await secured.register(partyRoutes, { db });
       await secured.register(crmRoutes, { db });
-      await secured.register(quotationRoutes, { db, storage, pdf });
+      await secured.register(quotationRoutes, { db, storage, pdf, files });
       await secured.register(templateRoutes, { db });
-      await secured.register(attachmentRoutes, { db, storage });
-      await secured.register(invoiceRoutes, { db, storage, pdf });
-      await secured.register(procurementRoutes, { db, storage, pdf });
+      await secured.register(attachmentRoutes, { db, storage, files });
+      await secured.register(invoiceRoutes, { db, storage, pdf, files });
+      await secured.register(procurementRoutes, { db, storage, pdf, files });
       await secured.register(expenseRoutes, { db });
     });
   }, { prefix: '/api' });

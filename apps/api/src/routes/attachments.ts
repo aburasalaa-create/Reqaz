@@ -13,7 +13,7 @@ const ENTITY_TABLE: Record<(typeof ENTITY_TYPES)[number], string> = {
 // Office documents, PDFs, images, drawings and archives commonly exchanged in tenders.
 const ALLOWED = /^(application\/(pdf|zip|x-zip-compressed|msword|vnd\.openxmlformats-officedocument\..+|vnd\.ms-excel|vnd\.ms-powerpoint|acad|x-autocad|dxf|octet-stream)|image\/(png|jpeg|webp|gif|tiff)|text\/(plain|csv))$/;
 
-export default async function attachmentRoutes(app: FastifyInstance, { db, storage }: { db: Db; storage: Storage }) {
+export default async function attachmentRoutes(app: FastifyInstance, { db, storage, files }: { db: Db; storage: Storage; files: boolean }) {
   app.get('/attachments', async (req) => {
     const q = z.object({ entity_type: z.enum(ENTITY_TYPES), entity_id: z.uuid() }).parse(req.query);
     return tx(db, req, (t) => many(t, `select a.*, u.full_name as uploaded_by_name from public.attachments a
@@ -22,6 +22,7 @@ export default async function attachmentRoutes(app: FastifyInstance, { db, stora
   });
 
   app.post('/attachments', async (req, reply) => {
+    if (!files) throw new HttpError(503, 'File uploads are switched off on this server', 'files_off');
     const part = await req.file();
     if (!part) throw new HttpError(400, 'No file uploaded', 'validation');
     const fields = z.object({ entity_type: z.enum(ENTITY_TYPES), entity_id: z.uuid(), category: z.string().max(100).optional() })

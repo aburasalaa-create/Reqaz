@@ -5,6 +5,7 @@ import { HttpError, notFound } from '../errors.js';
 import type { Storage } from '../storage.js';
 import { newStorageKey, sha256 } from '../storage.js';
 import type { PdfRenderer } from '../pdf/renderer.js';
+import { documentQuery, sendDocument } from './documents.js';
 import { renderQuotationHtml, type PdfLanguage } from '../pdf/quotation.js';
 import { decimal, getOr404, idParam, listQuery, optDate, optText, optUuid, reqText, tx, updateOrFail } from './util.js';
 
@@ -81,7 +82,7 @@ export async function loadRevisionDocument(t: Tx, revisionId: string) {
   return { rev, lines, customer, contact, company, tender, signatory };
 }
 
-export default async function quotationRoutes(app: FastifyInstance, { db, storage, pdf }: { db: Db; storage: Storage; pdf: PdfRenderer }) {
+export default async function quotationRoutes(app: FastifyInstance, { db, storage, pdf, files }: { db: Db; storage: Storage; pdf: PdfRenderer; files: boolean }) {
   app.get('/quotations', async (req) => {
     const q = listQuery.extend({ status: z.enum(['open', 'won', 'lost', 'cancelled']).optional(), revision_status: z.string().optional() }).parse(req.query);
     return tx(db, req, (t) => many(t, `
@@ -250,7 +251,7 @@ export default async function quotationRoutes(app: FastifyInstance, { db, storag
         if (!cur) throw notFound('Quotation revision');
         throw new HttpError(409, `This revision is ${cur.status.replace('_', ' ')}; it cannot be ${body.action.replace(/_/g, ' ')}`, 'conflict');
       }
-      if (body.action === 'mark_submitted') {
+      if (body.action === 'mark_submitted' && files) {
         // Archive the exact PDF sent to the client alongside the revision.
         const doc = await loadRevisionDocument(t, id);
         const html = renderQuotationHtml(doc, { language: 'bilingual', draft: false });
@@ -294,7 +295,7 @@ export default async function quotationRoutes(app: FastifyInstance, { db, storag
 
   app.get('/revisions/:id/pdf', async (req, reply) => {
     const { id } = idParam.parse(req.params);
-    const { lang } = z.object({ lang: z.enum(['bilingual', 'en', 'ar']).default('bilingual') }).parse(req.query);
+    const { lang, format } = documentQuery.parse(req.query);
     const { html, name } = await tx(db, req, async (t) => {
       const doc = await loadRevisionDocument(t, id);
       const draft = !['approved', 'submitted', 'awarded'].includes(doc.rev.status);
@@ -303,11 +304,7 @@ export default async function quotationRoutes(app: FastifyInstance, { db, storag
         name: `${doc.rev.reference.replace(/[^A-Za-z0-9._-]+/g, '-')}${draft ? '-DRAFT' : ''}.pdf`,
       };
     });
-    const file = await pdf.render(html);
-    return reply.header('Content-Type', 'application/pdf')
-      .header('Content-Disposition', `inline; filename="${name}"`)
-      .header('Cache-Control', 'no-store')
-      .send(file);
+    return sendDocument(reply, pdf, html, name, format);
   });
 
   // Contracts and projects created by award (read-only in Phase 1) ---------------

@@ -178,6 +178,7 @@ export function PurchaseOrderDetail() {
         subtitle={<>{pick(po.supplier_name, po.supplier_name_ar)}{po.request_number && <> · <Link className="link" to={`/purchases/requests/${po.purchase_request_id}`}>{po.request_number}</Link></>}</>}
         actions={<>
           <Button variant="secondary" onClick={() => api.openFile(`/purchase-orders/${id}/pdf`).catch(onError)}><FileDown className="h-4 w-4" />PDF</Button>
+          <Button variant="secondary" data-testid="word" onClick={() => api.openFile(`/purchase-orders/${id}/pdf?format=word`, `${po.number ?? 'PO-draft'}.doc`).catch(onError)}>Word</Button>
           {editable && <Button busy={act.isPending} onClick={() => act.mutate({ a: 'issue' })} data-testid="issue-po">{t('pur.issue')}</Button>}
           {po.status === 'issued' && can('procurement.order') && <Button onClick={() => act.mutate({ a: 'receive' })}>{t('pur.receive')}</Button>}
           {po.status === 'received' && can('procurement.order') && <Button variant="secondary" onClick={() => act.mutate({ a: 'close' })}>{t('pur.close')}</Button>}

@@ -6,6 +6,7 @@ import { HttpError, notFound } from '../errors.js';
 import type { Storage } from '../storage.js';
 import { newStorageKey, sha256 } from '../storage.js';
 import type { PdfRenderer } from '../pdf/renderer.js';
+import { documentQuery, sendDocument } from './documents.js';
 import { renderInvoiceHtml, invoiceTitle } from '../pdf/invoice.js';
 import type { PdfLanguage } from '../pdf/quotation.js';
 import { decimal, getOr404, idParam, listQuery, optDate, optText, optUuid, reqText, tx, updateOrFail } from './util.js';
@@ -81,7 +82,7 @@ const fileName = (inv: any) => {
   return `${(inv.number ?? `${title}-DRAFT`).replace(/[^A-Za-z0-9._-]+/g, '-')}.pdf`;
 };
 
-export default async function invoiceRoutes(app: FastifyInstance, { db, storage, pdf }: { db: Db; storage: Storage; pdf: PdfRenderer }) {
+export default async function invoiceRoutes(app: FastifyInstance, { db, storage, pdf, files }: { db: Db; storage: Storage; pdf: PdfRenderer; files: boolean }) {
   app.get('/invoices', async (req) => {
     const q = listQuery.extend({
       kind: z.enum(['invoice', 'credit_note', 'debit_note', 'proforma']).optional(),
@@ -223,6 +224,8 @@ export default async function invoiceRoutes(app: FastifyInstance, { db, storage,
     const { id } = idParam.parse(req.params);
     return tx(db, req, async (t) => {
       await t.query('select public.issue_invoice($1)', [id]);
+      // Without file storage the issued invoice is not archived as a file; it stays reproducible from its frozen data.
+      if (!files) return one(t, 'select * from public.invoices where id = $1', [id]);
       const doc = await loadInvoiceDocument(t, id);
       const file = await pdf.render(renderInvoiceHtml(doc, { language: 'bilingual' }));
       const name = fileName(doc.invoice);
@@ -248,14 +251,12 @@ export default async function invoiceRoutes(app: FastifyInstance, { db, storage,
 
   app.get('/invoices/:id/pdf', async (req, reply) => {
     const { id } = idParam.parse(req.params);
-    const { lang } = z.object({ lang: z.enum(['bilingual', 'en', 'ar']).default('bilingual') }).parse(req.query);
+    const { lang, format } = documentQuery.parse(req.query);
     const { html, name } = await tx(db, req, async (t) => {
       const doc = await loadInvoiceDocument(t, id);
       return { html: renderInvoiceHtml(doc, { language: lang as PdfLanguage }), name: fileName(doc.invoice) };
     });
-    const file = await pdf.render(html);
-    return reply.header('Content-Type', 'application/pdf').header('Content-Disposition', `inline; filename="${name}"`)
-      .header('Cache-Control', 'no-store').send(file);
+    return sendDocument(reply, pdf, html, name, format);
   });
 
   // Payments received -------------------------------------------------------------

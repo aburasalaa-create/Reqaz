@@ -43,7 +43,10 @@ SUPABASE_ANON_KEY=<publishable (anon) key — public, sent to the browser>
 SUPABASE_SERVICE_ROLE_KEY=<service role key — server only>
 STORAGE_DRIVER=supabase
 STORAGE_BUCKET=rms-documents
+FILE_STORAGE=off
 ```
+
+`FILE_STORAGE=off` is the production default. The app then works without a storage bucket: issued quotations, invoices and purchase orders are not archived as files, and anyone can download them on demand as PDF or Word from their frozen data. Uploads (attachments, receipts) are hidden. Set `FILE_STORAGE=on` once the `rms-documents` bucket exists.
 
 The container listens on port 8080 and serves the web app, the API under `/api`, and a health check at `/health`.
 

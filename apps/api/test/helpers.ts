@@ -24,10 +24,10 @@ export const USERS = {
 } as const;
 export type Who = keyof typeof USERS;
 
-export async function startServer() {
+export async function startServer(env: Record<string, string> = {}) {
   const cfg = loadConfig({
     NODE_ENV: 'test', DATABASE_URL, AUTH_MODE: 'dev', STORAGE_DRIVER: 'local',
-    STORAGE_LOCAL_DIR: mkdtempSync(path.join(tmpdir(), 'rms-storage-')), RATE_LIMIT_PER_MINUTE: '100000',
+    STORAGE_LOCAL_DIR: mkdtempSync(path.join(tmpdir(), 'rms-storage-')), RATE_LIMIT_PER_MINUTE: '100000', ...env,
   } as NodeJS.ProcessEnv);
   const db = createPool(cfg.DATABASE_URL, 10);
   const pdf = createPdfRenderer(process.env.CHROMIUM_PATH);

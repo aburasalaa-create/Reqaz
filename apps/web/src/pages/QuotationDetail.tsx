@@ -130,6 +130,7 @@ export default function QuotationDetail() {
     } catch { /* onError already reported it */ }
   };
   const pdf = (lang: string) => api.openFile(`/revisions/${r.id}/pdf?lang=${lang}`).catch((e) => toast(e.message, 'error'));
+  const word = () => api.openFile(`/revisions/${r.id}/pdf?format=word`, `${r.reference.replace(/[^A-Za-z0-9._-]+/g, '-')}.doc`).catch((e) => toast(e.message, 'error'));
 
   const canApprove = can('quotations.approve') && r.status === 'pending_approval';
   // With self-approval allowed, an approver finishes a draft in one click (submitted and approved, both recorded).
@@ -154,6 +155,7 @@ export default function QuotationDetail() {
             <button className="inline-flex items-center gap-1 bg-white px-2.5 py-1.5 text-sm hover:bg-slate-50" onClick={() => pdf('bilingual')} data-testid="pdf-bilingual"><FileDown className="h-4 w-4" />{t('quote.pdfBilingual')}</button>
             <button className="border-s bg-white px-2 py-1.5 text-sm hover:bg-slate-50" onClick={() => pdf('en')}>EN</button>
             <button className="border-s bg-white px-2 py-1.5 text-sm hover:bg-slate-50" onClick={() => pdf('ar')}>ع</button>
+            <button className="border-s bg-white px-2 py-1.5 text-sm hover:bg-slate-50" onClick={word} data-testid="word">Word</button>
           </div>
           {can('quotations.write') && q.status === 'open' && ['approved', 'submitted'].includes(latest.status) && <Button variant="secondary" busy={newRev.isPending} onClick={() => newRev.mutate()}><Copy className="h-4 w-4" />{t('quote.newRevision')}</Button>}
           {can('quotations.award') && q.status === 'open' && <Button variant="secondary" onClick={() => setLost('')}>{t('quote.markLost')}</Button>}
@@ -200,7 +202,7 @@ export default function QuotationDetail() {
                 <thead className="bg-slate-50">
                   <tr>
                     {showCosts && <><th className="th w-24">{t('quote.section')}</th><th className="th w-14">{t('quote.item')}</th></>}<th className="th min-w-[14rem]">{t('quote.descEn')} / {t('quote.descAr')}</th>
-                    <th className="th w-16">{t('quote.unit')}</th><th className="th w-20 text-end">{t('quote.qty')}</th>
+                    <th className="th w-16">{t('quote.unit')}</th><th className="th w-28 text-end">{t('quote.qty')}</th>
                     {showCosts && COST_FIELDS.map((f) => <th key={f} className="th w-24 text-end">{t(COST_LABEL[f])}</th>)}
                     {showCosts && <th className="th w-24 text-end">{t('quote.costTotal')}</th>}
                     <th className="th w-28 text-end">{t('quote.sellRate')}</th><th className="th w-28 text-end">{t('quote.sellTotal')}</th>{editable && <th className="w-8" />}

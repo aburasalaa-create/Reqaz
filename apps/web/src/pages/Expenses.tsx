@@ -50,7 +50,7 @@ const clean = (v: any) => Object.fromEntries(Object.entries(v).map(([k, x]) => [
 
 export function Expenses() {
   const { t } = useTranslation();
-  const { can } = useAuth();
+  const { can, me } = useAuth();
   const nav = useNavigate();
   const [status, setStatus] = useState('');
   const [q, setQ] = useState('');
@@ -99,7 +99,7 @@ export function Expenses() {
                 <td className="td font-mono text-xs"><Link className="link" to={`/expenses/${x.id}`}>{x.number}</Link></td>
                 <td className="td">{date(x.expense_date)}</td>
                 <td className="td">{x.description}{x.project_number && <span className="text-xs text-slate-400"> · {x.project_number}</span>}
-                  {!x.receipts && <span className="ms-1 text-xs text-amber-700">({t('exp.noReceipt')})</span>}</td>
+                  {!x.receipts && me?.files_enabled !== false && <span className="ms-1 text-xs text-amber-700">({t('exp.noReceipt')})</span>}</td>
                 <td className="td">{x.payee ?? '—'}</td>
                 <td className="td"><Badge tone={TONES[x.status]}>{t(`exp.status.${x.status}`)}</Badge></td>
                 <td className="td num">{money(x.total_amount, x.currency)}</td>
@@ -113,12 +113,12 @@ export function Expenses() {
         footer={<><Button variant="secondary" onClick={() => setForm(null)}>{t('common.cancel')}</Button><Button busy={create.isPending} onClick={() => create.mutate()}>{t('common.save')}</Button></>}>
         <ErrorBox error={create.error} />
         {form && <>
-          <label className={cx('mb-3 flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 py-3 text-sm', receipt ? 'border-emerald-400 bg-emerald-50' : 'border-slate-300 hover:bg-slate-50')}>
+          {me?.files_enabled !== false && <label className={cx('mb-3 flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 py-3 text-sm', receipt ? 'border-emerald-400 bg-emerald-50' : 'border-slate-300 hover:bg-slate-50')}>
             <Camera className="h-5 w-5 text-slate-500" />
             <span>{receipt ? receipt.name : t('exp.addReceipt')}</span>
             <input type="file" accept="image/*,application/pdf" capture="environment" className="hidden" data-testid="receipt-input"
               onChange={(e) => setReceipt(e.target.files?.[0] ?? null)} />
-          </label>
+          </label>}
           <ExpenseFields v={form} set={(k, val) => setForm((f: any) => ({ ...f, [k]: val }))} />
         </>}
       </Modal>

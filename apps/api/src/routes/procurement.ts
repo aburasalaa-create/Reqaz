@@ -5,6 +5,7 @@ import { HttpError, notFound } from '../errors.js';
 import type { Storage } from '../storage.js';
 import { newStorageKey, sha256 } from '../storage.js';
 import type { PdfRenderer } from '../pdf/renderer.js';
+import { documentQuery, sendDocument } from './documents.js';
 import { renderPurchaseOrderHtml } from '../pdf/purchase-order.js';
 import type { PdfLanguage } from '../pdf/quotation.js';
 import { decimal, getOr404, idParam, listQuery, optDate, optText, optUuid, reqText, tx, updateOrFail } from './util.js';
@@ -84,7 +85,7 @@ async function orderDocument(t: Tx, id: string) {
 
 const poFileName = (po: any) => `${(po.number ?? 'PO-DRAFT').replace(/[^A-Za-z0-9._-]+/g, '-')}.pdf`;
 
-export default async function procurementRoutes(app: FastifyInstance, { db, storage, pdf }: { db: Db; storage: Storage; pdf: PdfRenderer }) {
+export default async function procurementRoutes(app: FastifyInstance, { db, storage, pdf, files }: { db: Db; storage: Storage; pdf: PdfRenderer; files: boolean }) {
   // Purchase requests ----------------------------------------------------------
   app.get('/purchase-requests', async (req) => {
     const q = listQuery.extend({ status: z.enum(['draft', 'submitted', 'approved', 'rejected', 'ordered', 'cancelled']).optional(), mine: z.coerce.boolean().optional() }).parse(req.query);
@@ -245,6 +246,7 @@ export default async function procurementRoutes(app: FastifyInstance, { db, stor
     const { id } = idParam.parse(req.params);
     return tx(db, req, async (t) => {
       await t.query('select public.issue_purchase_order($1)', [id]);
+      if (!files) return loadOrder(t, id);
       const doc = await orderDocument(t, id);
       const file = await pdf.render(renderPurchaseOrderHtml(doc, { language: 'bilingual' }));
       const name = poFileName(doc.po);
@@ -270,13 +272,11 @@ export default async function procurementRoutes(app: FastifyInstance, { db, stor
 
   app.get('/purchase-orders/:id/pdf', async (req, reply) => {
     const { id } = idParam.parse(req.params);
-    const { lang } = z.object({ lang: z.enum(['bilingual', 'en', 'ar']).default('bilingual') }).parse(req.query);
+    const { lang, format } = documentQuery.parse(req.query);
     const { html, name } = await tx(db, req, async (t) => {
       const doc = await orderDocument(t, id);
       return { html: renderPurchaseOrderHtml(doc, { language: lang as PdfLanguage }), name: poFileName(doc.po) };
     });
-    const file = await pdf.render(html);
-    return reply.header('Content-Type', 'application/pdf').header('Content-Disposition', `inline; filename="${name}"`)
-      .header('Cache-Control', 'no-store').send(file);
+    return sendDocument(reply, pdf, html, name, format);
   });
 }

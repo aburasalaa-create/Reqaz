@@ -134,6 +134,7 @@ export function InvoiceDetail() {
   const credited = inv.notes.filter((n: any) => n.kind === 'credit_note' && n.status === 'issued').reduce((s: number, n: any) => s + Number(n.total_amount), 0);
   const balance = Number(inv.amount_payable) - Number(inv.amount_paid) - credited;
   const pdf = (lang: string) => api.openFile(`/invoices/${id}/pdf?lang=${lang}`).catch(onError);
+  const word = () => api.openFile(`/invoices/${id}/pdf?format=word`, `${inv.number ?? 'invoice-draft'}.doc`).catch(onError);
   const field = (k: string, type = 'text') => (
     <Input type={type} disabled={!editable} defaultValue={inv[k] ?? ''} key={`${k}-${inv.updated_at}`}
       onBlur={(e) => { if ((e.target.value || null) !== (inv[k] ?? null)) patch.mutate({ [k]: e.target.value }); }} />
@@ -150,6 +151,7 @@ export function InvoiceDetail() {
             <button className="inline-flex items-center gap-1 bg-white px-2.5 py-1.5 text-sm hover:bg-slate-50" onClick={() => pdf('bilingual')}><FileDown className="h-4 w-4" />PDF</button>
             <button className="border-s bg-white px-2 py-1.5 text-sm hover:bg-slate-50" onClick={() => pdf('en')}>EN</button>
             <button className="border-s bg-white px-2 py-1.5 text-sm hover:bg-slate-50" onClick={() => pdf('ar')}>ع</button>
+            <button className="border-s bg-white px-2 py-1.5 text-sm hover:bg-slate-50" onClick={word} data-testid="word">Word</button>
           </div>
           {draft && can('invoices.issue') && <Button onClick={() => setConfirmIssue(true)} data-testid="issue">{t('inv.issue')}</Button>}
           {inv.status === 'issued' && inv.kind === 'invoice' && can('invoices.write') && <>

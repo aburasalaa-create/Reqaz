@@ -7,14 +7,14 @@ import type { Config } from '../config.js';
 import { idParam, optText, requirePermission, tx, updateOrFail } from './util.js';
 import { createHash } from 'node:crypto';
 
-export default async function coreRoutes(app: FastifyInstance, { db, cfg }: { db: Db; cfg: Config }) {
+export default async function coreRoutes(app: FastifyInstance, { db, cfg, files }: { db: Db; cfg: Config; files: boolean }) {
   app.get('/me', async (req) => tx(db, req, async (t) => {
     const user = await one(t, 'select * from public.app_users where id = auth.uid()');
     if (!user || !user.is_active) throw new HttpError(403, 'Your account is not active in RMS. Ask an administrator for access.', 'inactive');
     const permissions = (await many<{ p: string }>(t, 'select public.current_permissions() as p')).map((r) => r.p);
     const roles = await many(t, `select r.code, r.name_en, r.name_ar from public.user_roles ur join public.roles r on r.id = ur.role_id where ur.user_id = auth.uid()`);
     const settings = await one<{ open_access: boolean; allow_self_approval: boolean }>(t, 'select open_access, allow_self_approval from public.company_settings');
-    return { ...user, permissions, roles, open_access: !!settings?.open_access, allow_self_approval: !!settings?.allow_self_approval };
+    return { ...user, permissions, roles, open_access: !!settings?.open_access, allow_self_approval: !!settings?.allow_self_approval, files_enabled: files };
   }));
 
   app.patch('/me', async (req) => {

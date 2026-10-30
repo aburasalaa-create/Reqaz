@@ -22,6 +22,9 @@ const schema = z.object({
   STORAGE_LOCAL_DIR: z.string().default('./storage-local'),
   STORAGE_BUCKET: z.string().default('rms-documents'),
   MAX_UPLOAD_MB: z.coerce.number().default(25),
+  // Keep uploaded files and archived copies of issued documents. Off by default in production so the app runs without a
+  // storage bucket: issued documents stay reproducible from their frozen data and are generated when downloaded.
+  FILE_STORAGE: z.enum(['on', 'off']).optional(),
   // Path to a Chromium binary for PDF rendering (optional; Playwright default otherwise)
   CHROMIUM_PATH: z.string().optional(),
   // Built web app (apps/web/dist) to serve from the same origin; empty when the web app is hosted separately.
@@ -37,10 +40,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (cfg.SUPABASE_ANON_KEY && isSecretKey(cfg.SUPABASE_ANON_KEY)) {
     throw new Error('SUPABASE_ANON_KEY holds a secret/service-role key; it must be the publishable (anon) key');
   }
+  cfg.FILE_STORAGE ??= cfg.NODE_ENV === 'production' ? 'off' : 'on';
   if (cfg.NODE_ENV === 'production') {
     if (cfg.AUTH_MODE !== 'supabase') throw new Error('AUTH_MODE=dev is not allowed in production');
     if (!cfg.SUPABASE_URL) throw new Error('SUPABASE_URL is required in production');
-    if (cfg.STORAGE_DRIVER !== 'supabase') throw new Error('Use STORAGE_DRIVER=supabase in production');
+    if (cfg.FILE_STORAGE === 'on' && cfg.STORAGE_DRIVER !== 'supabase') throw new Error('Use STORAGE_DRIVER=supabase in production');
   }
   return cfg;
 }
