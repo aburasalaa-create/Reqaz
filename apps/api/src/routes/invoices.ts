@@ -26,6 +26,7 @@ const headerBody = z.object({
   payment_terms_en: optText, payment_terms_ar: optText,
   retention_pct: decimal.optional(),
   advance_deduction: decimal.optional(),
+  advance_recovery: decimal.optional(),
 }).strict();
 
 const lineBody = z.object({
@@ -45,6 +46,8 @@ const paymentBody = z.object({
   payment_date: z.iso.date(),
   amount: decimal,
   method: z.enum(['bank_transfer', 'cheque', 'cash', 'card', 'other']).default('bank_transfer'),
+  kind: z.enum(['invoice', 'retention']).default('invoice'),
+  bank_account_code: z.string().max(8).nullish(),
   reference: optText,
   notes: optText,
 }).strict();
@@ -52,8 +55,11 @@ const paymentBody = z.object({
 async function loadInvoice(t: Tx, id: string) {
   const invoice = await getOr404<any>(t, `
     select i.*, c.name_en as customer_name, c.name_ar as customer_name_ar, o.number as original_number,
-           ct.number as contract_number, p.number as project_number, p.name as project_name, u.full_name as issued_by_name
+           ct.number as contract_number, p.number as project_number, p.name as project_name, u.full_name as issued_by_name,
+           cp.number as customer_po_record, cp.customer_po_number,
+           public.customer_advance_open(i.customer_id, i.project_id, i.id) as advance_open
     from public.invoices i join public.customers c on c.id = i.customer_id
+    left join public.customer_pos cp on cp.id = i.customer_po_id
     left join public.invoices o on o.id = i.original_invoice_id
     left join public.contracts ct on ct.id = i.contract_id
     left join public.projects p on p.id = i.project_id
@@ -89,10 +95,13 @@ export default async function invoiceRoutes(app: FastifyInstance, { db, storage,
       status: z.enum(['draft', 'issued', 'cancelled']).optional(),
       customer_id: z.uuid().optional(),
       contract_id: z.uuid().optional(),
+      customer_po_id: z.uuid().optional(),
+      project_id: z.uuid().optional(),
     }).parse(req.query);
     return tx(db, req, (t) => many(t, `
       select i.id, i.number, i.kind, i.zatca_type, i.status, i.customer_id, i.contract_id, i.issue_date, i.due_date, i.currency,
              i.title, i.taxable_amount, i.vat_total, i.total_amount, i.amount_payable, i.amount_paid, i.created_at,
+             i.billing_type, i.customer_po_id, i.retention_amount, i.retention_received, i.advance_recovery,
              c.name_en as customer_name, c.name_ar as customer_name_ar, o.number as original_number,
              coalesce((select sum(cn.total_amount) from public.invoices cn where cn.original_invoice_id = i.id and cn.kind = 'credit_note' and cn.status = 'issued'), 0) as credited_amount
       from public.invoices i join public.customers c on c.id = i.customer_id
@@ -102,8 +111,9 @@ export default async function invoiceRoutes(app: FastifyInstance, { db, storage,
         and ($3::public.invoice_status is null or i.status = $3)
         and ($4::uuid is null or i.customer_id = $4)
         and ($5::uuid is null or i.contract_id = $5)
+        and ($8::uuid is null or i.customer_po_id = $8) and ($9::uuid is null or i.project_id = $9)
       order by coalesce(i.issued_at, i.created_at) desc limit $6 offset $7`,
-      [q.q || null, q.kind ?? null, q.status ?? null, q.customer_id ?? null, q.contract_id ?? null, q.limit, q.offset]));
+      [q.q || null, q.kind ?? null, q.status ?? null, q.customer_id ?? null, q.contract_id ?? null, q.limit, q.offset, q.customer_po_id ?? null, q.project_id ?? null]));
   });
 
   app.post('/invoices', async (req, reply) => {

@@ -8,6 +8,7 @@ import type { PdfRenderer } from '../pdf/renderer.js';
 import { documentQuery, sendDocument } from './documents.js';
 import { renderPurchaseOrderHtml } from '../pdf/purchase-order.js';
 import type { PdfLanguage } from '../pdf/quotation.js';
+import { approvalInfo } from './approvals.js';
 import { decimal, getOr404, idParam, listQuery, optDate, optText, optUuid, reqText, tx, updateOrFail } from './util.js';
 
 const prBody = z.object({
@@ -16,6 +17,9 @@ const prBody = z.object({
   needed_by: optDate,
   delivery_location: optText,
   notes: optText,
+  cost_category: z.string().max(30).optional(),
+  technical_spec: optText,
+  justification: optText,
 }).strict();
 
 const prLine = z.object({
@@ -35,6 +39,8 @@ const poBody = z.object({
   payment_terms: optText,
   terms: optText,
   notes: optText,
+  cost_category: z.string().max(30).optional(),
+  retention_pct: decimal.optional(),
 }).strict();
 
 const poLine = z.object({
@@ -45,10 +51,12 @@ const poLine = z.object({
   unit_price: decimal.optional(),
   discount_amount: decimal.optional(),
   vat_code: z.string().max(10).optional(),
+  cost_category: z.string().max(30).nullish(),
 }).strict();
 
 const PR_ACTIONS = { submit: 'submitted', withdraw: 'draft', approve: 'approved', reject: 'rejected', cancel: 'cancelled' } as const;
-const PO_ACTIONS = { receive: 'received', close: 'closed', cancel: 'cancelled' } as const;
+const PO_ACTIONS = { submit: 'pending_approval', withdraw: 'draft', approve: 'approved', reject: 'draft', close: 'closed', cancel: 'cancelled' } as const;
+export const PO_STATUSES = ['draft', 'pending_approval', 'approved', 'issued', 'partially_received', 'received', 'closed', 'cancelled', 'superseded'] as const;
 
 async function loadRequest(t: Tx, id: string) {
   const pr = await getOr404<any>(t, `
@@ -58,6 +66,11 @@ async function loadRequest(t: Tx, id: string) {
     left join public.app_users d on d.id = r.decided_by left join public.projects p on p.id = r.project_id
     where r.id = $1`, [id], 'Purchase request');
   pr.lines = await many(t, 'select * from public.purchase_request_lines where request_id = $1 order by sort_order, created_at', [id]);
+  pr.quotes = await many(t, `
+    select q.*, s.name_en as supplier_name, s.name_ar as supplier_name_ar,
+           coalesce((select json_agg(l order by l.request_line_id) from public.supplier_quote_lines l where l.quote_id = q.id), '[]') as lines
+    from public.supplier_quotes q join public.suppliers s on s.id = q.supplier_id where q.request_id = $1 order by q.total_amount`, [id]);
+  pr.approvals = await approvalInfo(t, 'purchase_request', id, pr.estimated_total);
   return pr;
 }
 
@@ -69,7 +82,24 @@ async function loadOrder(t: Tx, id: string) {
     left join public.purchase_requests r on r.id = o.purchase_request_id
     left join public.projects p on p.id = o.project_id left join public.app_users u on u.id = o.issued_by
     where o.id = $1`, [id], 'Purchase order');
-  po.lines = await many(t, 'select * from public.purchase_order_lines where order_id = $1 order by sort_order, created_at', [id]);
+  po.lines = await many(t, `
+    select l.*, public.po_line_received(l.line_ref) as received_qty, public.po_line_invoiced(l.line_ref) as invoiced_qty
+    from public.purchase_order_lines l where l.order_id = $1 order by l.sort_order, l.created_at`, [id]);
+  po.receipts = await many(t, `
+    select g.*, u.full_name as received_by_name, (select sum(amount) from public.goods_receipt_lines where receipt_id = g.id) as amount,
+           (select json_agg(json_build_object('description', pl.description, 'unit', pl.unit, 'quantity', gl.quantity, 'amount', gl.amount))
+              from public.goods_receipt_lines gl join public.purchase_order_lines pl on pl.id = gl.po_line_id where gl.receipt_id = g.id) as lines
+    from public.goods_receipts g left join public.app_users u on u.id = g.received_by
+    where g.po_id in (select id from public.purchase_orders where root_id = $1) order by g.created_at`, [po.root_id]);
+  po.supplier_invoices = await many(t, `
+    select id, number, supplier_invoice_number, invoice_date, status, match_status, subtotal, total_amount, amount_payable, amount_paid
+    from public.supplier_invoices where po_id in (select id from public.purchase_orders where root_id = $1) order by created_at`, [po.root_id]);
+  po.payments = await many(t, `
+    select p.id, p.number, p.kind, p.payment_date, p.amount, p.voided_at, p.invoice_id
+    from public.supplier_payments p where p.po_id in (select id from public.purchase_orders where root_id = $1) order by p.created_at`, [po.root_id]);
+  po.versions = await many(t, `select id, number, status, revision_no, total_amount, issued_at from public.purchase_orders where root_id = $1 order by revision_no`, [po.root_id]);
+  po.advance_open = (await one<any>(t, 'select public.supplier_advance_open($1, $2) as v', [po.supplier_id, po.root_id]))?.v ?? '0';
+  po.approvals = await approvalInfo(t, 'purchase_order', id, po.taxable_amount);
   return po;
 }
 
@@ -173,15 +203,16 @@ export default async function procurementRoutes(app: FastifyInstance, { db, stor
 
   // Purchase orders --------------------------------------------------------------
   app.get('/purchase-orders', async (req) => {
-    const q = listQuery.extend({ status: z.enum(['draft', 'issued', 'received', 'closed', 'cancelled']).optional(), supplier_id: z.uuid().optional() }).parse(req.query);
+    const q = listQuery.extend({ status: z.enum(PO_STATUSES).optional(), supplier_id: z.uuid().optional(), project_id: z.uuid().optional() }).parse(req.query);
     return tx(db, req, (t) => many(t, `
-      select o.id, o.number, o.status, o.issue_date, o.delivery_date, o.currency, o.total_amount, o.created_at,
+      select o.id, o.number, o.status, o.issue_date, o.delivery_date, o.currency, o.total_amount, o.taxable_amount, o.over_budget, o.created_at,
              coalesce(s.name_en, o.supplier_snapshot ->> 'name_en') as supplier_name, s.name_ar as supplier_name_ar, r.number as request_number, p.number as project_number
       from public.purchase_orders o left join public.suppliers s on s.id = o.supplier_id
       left join public.purchase_requests r on r.id = o.purchase_request_id left join public.projects p on p.id = o.project_id
       where ($1::text is null or o.number ilike '%' || $1 || '%' or s.name_en ilike '%' || $1 || '%')
-        and ($2::public.po_status is null or o.status = $2) and ($3::uuid is null or o.supplier_id = $3)
-      order by coalesce(o.issued_at, o.created_at) desc limit $4 offset $5`, [q.q || null, q.status ?? null, q.supplier_id ?? null, q.limit, q.offset]));
+        and ($2::text is null or o.status = $2) and ($3::uuid is null or o.supplier_id = $3)
+        and ($6::uuid is null or o.project_id = $6) and o.status <> 'superseded'
+      order by coalesce(o.issued_at, o.created_at) desc limit $4 offset $5`, [q.q || null, q.status ?? null, q.supplier_id ?? null, q.limit, q.offset, q.project_id ?? null]));
   });
 
   app.post('/purchase-orders', async (req, reply) => {
@@ -208,7 +239,7 @@ export default async function procurementRoutes(app: FastifyInstance, { db, stor
     const body = poBody.parse(req.body);
     return tx(db, req, async (t) => {
       const cur = await getOr404<any>(t, 'select status from public.purchase_orders where id = $1', [id], 'Purchase order');
-      if (cur.status !== 'draft') throw new HttpError(403, 'An issued purchase order cannot be changed; cancel it and issue a new one', 'forbidden');
+      if (cur.status !== 'draft') throw new HttpError(403, 'A purchase order can only be edited while it is a draft; raise an amendment instead', 'forbidden');
       await updateOrFail(t, 'purchase_orders', id, body, 'Purchase order');
       return loadOrder(t, id);
     });
@@ -261,11 +292,26 @@ export default async function procurementRoutes(app: FastifyInstance, { db, stor
     });
   });
 
+  app.post('/purchase-orders/:id/amend', async (req, reply) => {
+    const { id } = idParam.parse(req.params);
+    const po = await tx(db, req, async (t) => {
+      const r = await one<{ id: string }>(t, 'select public.amend_purchase_order($1) as id', [id]);
+      return loadOrder(t, r!.id);
+    });
+    return reply.status(201).send(po);
+  });
+
   app.post('/purchase-orders/:id/:action', async (req) => {
     const { id, action } = z.object({ id: z.uuid(), action: z.enum(Object.keys(PO_ACTIONS) as [keyof typeof PO_ACTIONS]) }).parse(req.params);
-    const { reason } = z.object({ reason: z.string().trim().max(1000).optional() }).parse(req.body ?? {});
+    const { reason, comment } = z.object({ reason: z.string().trim().max(1000).optional(), comment: z.string().trim().max(2000).optional() }).parse(req.body ?? {});
     return tx(db, req, async (t) => {
-      await updateOrFail(t, 'purchase_orders', id, { status: PO_ACTIONS[action], cancel_reason: action === 'cancel' ? (reason ?? '') : undefined }, 'Purchase order');
+      const note = comment ?? reason;
+      if (action === 'reject' && !note) throw new HttpError(422, 'A reason is required when rejecting', 'rule_violation');
+      await updateOrFail(t, 'purchase_orders', id, {
+        status: PO_ACTIONS[action],
+        cancel_reason: action === 'cancel' ? (note ?? '') : undefined,
+        decision_comment: ['approve', 'reject', 'withdraw'].includes(action) ? (note ?? null) : undefined,
+      }, 'Purchase order');
       return loadOrder(t, id);
     });
   });

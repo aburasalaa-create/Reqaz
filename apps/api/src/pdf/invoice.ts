@@ -82,6 +82,7 @@ export function renderInvoiceHtml(doc: InvoiceDoc, opts: { language?: PdfLanguag
     ['Total (excluding VAT)', 'الإجمالي غير شامل الضريبة', money(inv.subtotal)],
   ];
   if (Number(inv.discount_total)) totals.push(['Discount', 'الخصم', `(${money(inv.discount_total)})`]);
+  if (Number(inv.advance_recovery)) totals.push(['Less advance payment recovered (before VAT)', 'يخصم استرداد الدفعة المقدمة (قبل الضريبة)', `(${money(inv.advance_recovery)})`]);
   totals.push(['Total taxable amount', 'الإجمالي الخاضع للضريبة', money(inv.taxable_amount)]);
   totals.push(['Total VAT', 'إجمالي ضريبة القيمة المضافة', money(inv.vat_total)]);
   totals.push(['Total amount due (including VAT)', 'إجمالي المبلغ المستحق شامل الضريبة', money(inv.total_amount), 'grand']);

@@ -13,8 +13,10 @@ export default async function coreRoutes(app: FastifyInstance, { db, cfg, files 
     if (!user || !user.is_active) throw new HttpError(403, 'Your account is not active in RMS. Ask an administrator for access.', 'inactive');
     const permissions = (await many<{ p: string }>(t, 'select public.current_permissions() as p')).map((r) => r.p);
     const roles = await many(t, `select r.code, r.name_en, r.name_ar from public.user_roles ur join public.roles r on r.id = ur.role_id where ur.user_id = auth.uid()`);
-    const settings = await one<{ open_access: boolean; allow_self_approval: boolean }>(t, 'select open_access, allow_self_approval from public.company_settings');
-    return { ...user, permissions, roles, open_access: !!settings?.open_access, allow_self_approval: !!settings?.allow_self_approval, files_enabled: files };
+    const settings = await one<{ open_access: boolean; allow_self_approval: boolean; segregation_of_duties: boolean }>(t,
+      'select open_access, allow_self_approval, segregation_of_duties from public.company_settings');
+    return { ...user, permissions, roles, open_access: !!settings?.open_access, allow_self_approval: !!settings?.allow_self_approval,
+      segregation_of_duties: !!settings?.segregation_of_duties, files_enabled: files };
   }));
 
   app.patch('/me', async (req) => {
@@ -27,6 +29,8 @@ export default async function coreRoutes(app: FastifyInstance, { db, cfg, files 
     vat_codes: await many(t, 'select * from public.vat_codes where is_active order by rate desc'),
     users: await many(t, 'select id, full_name, full_name_ar, email, phone, job_title from public.app_users where is_active order by full_name'),
     settings: await one(t, 'select * from public.company_settings'),
+    cost_categories: await many(t, 'select code, name_en, name_ar from public.cost_categories where is_active order by sort_order'),
+    bank_accounts: await many(t, 'select code, name_en, name_ar, bank_name, iban from public.accounts where is_bank and is_active order by code'),
   })));
 
   app.get('/dashboard', async (req) => tx(db, req, async (t) => {
@@ -143,6 +147,7 @@ export default async function coreRoutes(app: FastifyInstance, { db, cfg, files 
       quotation_validity_days: z.coerce.number().int().min(1).max(365).optional(),
       allow_self_approval: z.boolean().optional(),
       open_access: z.boolean().optional(),
+      segregation_of_duties: z.boolean().optional(),
     }).parse(req.body);
     return tx(db, req, async (t) => {
       const cols = Object.keys(body).filter((k) => (body as any)[k] !== undefined);

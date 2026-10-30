@@ -54,6 +54,7 @@ export async function startServer(env: Record<string, string> = {}) {
     const res = await fetch(`${base}/api${url}`, { method, headers, body: payload });
     const type = res.headers.get('content-type') ?? '';
     const data = type.includes('json') ? await res.json() : type ? Buffer.from(await res.arrayBuffer()) : null;
+    if (process.env.DEBUG_CALLS && res.status >= 400) console.log('CALL', who, method, url, res.status, JSON.stringify(data));
     return { status: res.status, data: data as any, headers: res.headers };
   }
 

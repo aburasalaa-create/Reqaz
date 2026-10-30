@@ -71,6 +71,11 @@ describe('procurement', () => {
     expect((await s.call('procurement', 'PATCH', `/purchase-orders/${ids.po}`, { total_amount: '1' })).status).toBe(400);
 
     expect((await s.call('site', 'POST', `/purchase-orders/${ids.po}/issue`)).status).toBe(403);
+    // Approval comes before issue.
+    expect((await s.call('procurement', 'POST', `/purchase-orders/${ids.po}/issue`)).status).toBe(422);
+    expect((await s.call('procurement', 'POST', `/purchase-orders/${ids.po}/submit`)).data.status).toBe('pending_approval');
+    expect((await s.call('procurement', 'POST', `/purchase-orders/${ids.po}/approve`)).status).toBe(403);
+    expect((await s.call('pm', 'POST', `/purchase-orders/${ids.po}/approve`)).data.status).toBe('approved');
     const iss = await s.call('procurement', 'POST', `/purchase-orders/${ids.po}/issue`);
     expect(iss.status).toBe(200);
     expect(iss.data.number).toMatch(/^PO-\d{4}-\d{5}$/);
@@ -84,8 +89,12 @@ describe('procurement', () => {
   it('issued orders are frozen; status only moves forward, cancel needs a reason', async () => {
     expect((await s.call('procurement', 'PATCH', `/purchase-orders/${ids.po}`, { notes: 'change' })).status).toBe(403);
     expect((await s.call('procurement', 'POST', `/purchase-orders/${ids.po}/lines`, { description: 'extra', quantity: '1' })).status).toBe(403);
-    expect((await s.call('procurement', 'POST', `/purchase-orders/${ids.po}/close`)).status).toBe(422); // must be received first
-    expect((await s.call('procurement', 'POST', `/purchase-orders/${ids.po}/receive`)).data.status).toBe('received');
+    const po = (await s.call('procurement', 'GET', `/purchase-orders/${ids.po}`)).data;
+    const grn = await s.call('site', 'POST', `/purchase-orders/${ids.po}/receipts`, {
+      delivery_note_ref: 'DN-55', lines: po.lines.map((l: any) => ({ po_line_id: l.id, quantity: l.quantity })) });
+    expect(grn.status).toBe(201);
+    expect((await s.call('procurement', 'GET', `/purchase-orders/${ids.po}`)).data.status).toBe('received');
+    expect((await s.call('procurement', 'POST', `/purchase-orders/${ids.po}/cancel`, { reason: 'x' })).status).toBe(422); // goods received
     expect((await s.call('procurement', 'POST', `/purchase-orders/${ids.po}/close`)).data.status).toBe('closed');
 
     const d = await s.call('procurement', 'POST', '/purchase-orders', { supplier_id: ids.supplier });

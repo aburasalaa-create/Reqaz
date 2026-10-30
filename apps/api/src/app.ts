@@ -22,6 +22,11 @@ import attachmentRoutes from './routes/attachments.js';
 import invoiceRoutes from './routes/invoices.js';
 import procurementRoutes from './routes/procurement.js';
 import expenseRoutes from './routes/expenses.js';
+import purchasingRoutes from './routes/purchasing.js';
+import customerPoRoutes from './routes/customer-pos.js';
+import projectRoutes from './routes/projects.js';
+import accountingRoutes from './routes/accounting.js';
+import poCenterRoutes from './routes/po-center.js';
 
 export interface AppDeps {
   cfg: Config;
@@ -88,6 +93,11 @@ export async function buildApp({ cfg, db, storage, pdf, verifier }: AppDeps) {
       await secured.register(invoiceRoutes, { db, storage, pdf, files });
       await secured.register(procurementRoutes, { db, storage, pdf, files });
       await secured.register(expenseRoutes, { db });
+      await secured.register(purchasingRoutes, { db });
+      await secured.register(customerPoRoutes, { db });
+      await secured.register(projectRoutes, { db });
+      await secured.register(accountingRoutes, { db });
+      await secured.register(poCenterRoutes, { db });
     });
   }, { prefix: '/api' });
 

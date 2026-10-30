@@ -5,27 +5,34 @@ import { HttpError, notFound } from '../errors.js';
 import { newStorageKey, sha256, type Storage } from '../storage.js';
 import { idParam, tx } from './util.js';
 
-const ENTITY_TYPES = ['customer', 'opportunity', 'tender', 'quotation', 'quotation_revision', 'contract', 'project', 'expense'] as const;
+const ENTITY_TYPES = ['customer', 'opportunity', 'tender', 'quotation', 'quotation_revision', 'contract', 'project', 'expense', 'invoice',
+  'purchase_request', 'purchase_order', 'customer_po', 'supplier_quote', 'goods_receipt', 'supplier_invoice', 'budget_change', 'variation'] as const;
 const ENTITY_TABLE: Record<(typeof ENTITY_TYPES)[number], string> = {
   customer: 'customers', opportunity: 'opportunities', tender: 'tenders', quotation: 'quotations',
-  quotation_revision: 'quotation_revisions', contract: 'contracts', project: 'projects', expense: 'expenses',
+  quotation_revision: 'quotation_revisions', contract: 'contracts', project: 'projects', expense: 'expenses', invoice: 'invoices',
+  purchase_request: 'purchase_requests', purchase_order: 'purchase_orders', customer_po: 'customer_pos', supplier_quote: 'supplier_quotes',
+  goods_receipt: 'goods_receipts', supplier_invoice: 'supplier_invoices', budget_change: 'budget_changes', variation: 'variations',
 };
+const DOCUMENT_TYPES = ['customer_po', 'supplier_quotation', 'supplier_po', 'requisition', 'goods_received_note', 'supplier_invoice', 'delivery_note',
+  'contract', 'amendment', 'specification', 'receipt', 'other'] as const;
 // Office documents, PDFs, images, drawings and archives commonly exchanged in tenders.
 const ALLOWED = /^(application\/(pdf|zip|x-zip-compressed|msword|vnd\.openxmlformats-officedocument\..+|vnd\.ms-excel|vnd\.ms-powerpoint|acad|x-autocad|dxf|octet-stream)|image\/(png|jpeg|webp|gif|tiff)|text\/(plain|csv))$/;
 
 export default async function attachmentRoutes(app: FastifyInstance, { db, storage, files }: { db: Db; storage: Storage; files: boolean }) {
   app.get('/attachments', async (req) => {
-    const q = z.object({ entity_type: z.enum(ENTITY_TYPES), entity_id: z.uuid() }).parse(req.query);
+    const q = z.object({ entity_type: z.enum(ENTITY_TYPES), entity_id: z.uuid(), history: z.coerce.boolean().optional() }).parse(req.query);
     return tx(db, req, (t) => many(t, `select a.*, u.full_name as uploaded_by_name from public.attachments a
       left join public.app_users u on u.id = a.uploaded_by
-      where a.entity_type = $1 and a.entity_id = $2 and a.deleted_at is null order by a.created_at desc`, [q.entity_type, q.entity_id]));
+      where a.entity_type = $1 and a.entity_id = $2 and a.deleted_at is null and ($3 or a.superseded_at is null)
+      order by a.created_at desc`, [q.entity_type, q.entity_id, q.history ?? false]));
   });
 
   app.post('/attachments', async (req, reply) => {
     if (!files) throw new HttpError(503, 'File uploads are switched off on this server', 'files_off');
     const part = await req.file();
     if (!part) throw new HttpError(400, 'No file uploaded', 'validation');
-    const fields = z.object({ entity_type: z.enum(ENTITY_TYPES), entity_id: z.uuid(), category: z.string().max(100).optional() })
+    const fields = z.object({ entity_type: z.enum(ENTITY_TYPES), entity_id: z.uuid(), category: z.string().max(100).optional(),
+      document_type: z.enum(DOCUMENT_TYPES).optional(), replaces_id: z.uuid().optional() })
       .parse(Object.fromEntries(Object.entries(part.fields).map(([k, v]: [string, any]) => [k, v?.value])));
     if (!ALLOWED.test(part.mimetype)) throw new HttpError(415, `File type ${part.mimetype} is not allowed`, 'unsupported_type');
     const body = await part.toBuffer();
@@ -40,6 +47,7 @@ export default async function attachmentRoutes(app: FastifyInstance, { db, stora
       const att = await insertRow(t, 'attachments', {
         entity_type: fields.entity_type, entity_id: fields.entity_id, file_name: fileName, mime_type: part.mimetype,
         size_bytes: body.length, sha256: sha256(body), storage_path: key, category: fields.category ?? null, uploaded_by: req.user.id,
+        document_type: fields.document_type ?? null, replaces_id: fields.replaces_id ?? null,
       });
       // Upload last: if the register insert fails (e.g. no permission) nothing is stored.
       await storage.put(key, body, part.mimetype);

@@ -121,7 +121,7 @@ describe('customer invoices', () => {
     const r = await s.call('finance', 'POST', `/invoices/${ids.inv}/issue`);
     expect(r.status).toBe(200);
     expect(r.data.status).toBe('issued');
-    expect(r.data.number).toMatch(/^INV-\d{4}-00001$/);
+    expect(r.data.number).toMatch(/^INV-\d{4}-\d{5}$/);
     expect(r.data.seller_snapshot.vat_number).toBe('300000000000003');
     expect(r.data.seller_snapshot.bank_accounts).toHaveLength(2);
     expect(r.data.buyer_snapshot).toMatchObject({ name_en: 'Al Noor Real Estate Development', vat_number: '310000000000003', city: 'Riyadh' });
@@ -166,7 +166,7 @@ describe('customer invoices', () => {
     expect(over.status).toBe(422);
     const p = await s.call('finance', 'POST', `/invoices/${ids.inv}/payments`, { payment_date: '2026-10-29', amount: '1000', reference: 'TRX-1' });
     expect(p.status).toBe(201);
-    expect(p.data.number).toMatch(/^RCT-\d{4}-00001$/);
+    expect(p.data.number).toMatch(/^RCT-\d{4}-\d{5}$/);
     expect((await s.call('finance', 'GET', `/invoices/${ids.inv}`)).data.amount_paid).toBe('1000.00');
     expect((await s.call('sales', 'POST', `/invoices/${ids.inv}/payments`, { payment_date: '2026-10-29', amount: '1' })).status).toBe(404);
     expect((await s.call('pm', 'POST', `/invoices/${ids.inv}/payments`, { payment_date: '2026-10-29', amount: '1' })).status).toBe(403);
@@ -190,7 +190,7 @@ describe('customer invoices', () => {
     await s.call('finance', 'PATCH', `/invoice-lines/${line.id}`, { unit_price: '100' });
     const ok = await s.call('finance', 'POST', `/invoices/${cn.data.id}/issue`);
     expect(ok.status).toBe(200);
-    expect(ok.data.number).toMatch(/^CRN-\d{4}-00001$/);
+    expect(ok.data.number).toMatch(/^CRN-\d{4}-\d{5}$/);
     expect(ok.data.total_amount).toBe('115.00');
 
     const ar = await s.call('finance', 'GET', '/receivables');
@@ -205,7 +205,7 @@ describe('customer invoices', () => {
     await s.call('finance', 'POST', `/invoices/${pf.data.id}/lines`, { description_en: 'Advance', unit_price: '1000' });
     const iss = await s.call('finance', 'POST', `/invoices/${pf.data.id}/issue`);
     expect(iss.status).toBe(200);
-    expect(iss.data.number).toMatch(/^PRF-\d{4}-00001$/);
+    expect(iss.data.number).toMatch(/^PRF-\d{4}-\d{5}$/);
     expect(iss.data.zatca_qr).toBeNull();
     expect((await s.call('finance', 'POST', `/invoices/${pf.data.id}/payments`, { payment_date: '2026-10-29', amount: '1' })).status).toBe(422);
     const c = await s.call('finance', 'POST', `/invoices/${pf.data.id}/cancel`, { reason: 'Client changed scope' });
