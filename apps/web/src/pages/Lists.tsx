@@ -9,6 +9,7 @@ import { api, qs } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { date, dateTime, daysUntil, money } from '../lib/format';
 import Attachments from '../components/Attachments';
+import NewQuotation from '../components/NewQuotation';
 import { CustomerSelect } from '../components/OpportunityForm';
 import { TenderFields, cleanTender } from '../components/TenderForm';
 import { BillContract } from './Invoices';
@@ -151,13 +152,17 @@ export function Quotations() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [rs, setRs] = useState('');
+  const [creating, setCreating] = useState(false);
+  const { can } = useAuth();
   const { data, isLoading, error } = useQuery({ queryKey: ['quotations', q, status, rs], queryFn: () => api.get(`/quotations${qs({ q, status, revision_status: rs })}`) });
   return (
     <div>
       <PageHeader title={t('quote.title')} subtitle={t('opp.linkCustomer') && undefined} actions={<>
         <Input className="w-56" placeholder={t('common.search')} value={q} onChange={(e) => setQ(e.target.value)} />
         <Select className="w-36" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">{t('common.all')}</option>{['open', 'won', 'lost', 'cancelled'].map((s) => <option key={s} value={s}>{t(`quoteStatus.${s}`)}</option>)}</Select>
-        <Select className="w-44" value={rs} onChange={(e) => setRs(e.target.value)}><option value="">{t('common.all')}</option>{['draft', 'pending_approval', 'approved', 'submitted', 'awarded'].map((s) => <option key={s} value={s}>{t(`revStatus.${s}`)}</option>)}</Select></>} />
+        <Select className="w-44" value={rs} onChange={(e) => setRs(e.target.value)}><option value="">{t('common.all')}</option>{['draft', 'pending_approval', 'approved', 'submitted', 'awarded'].map((s) => <option key={s} value={s}>{t(`revStatus.${s}`)}</option>)}</Select>
+        {can('quotations.write') && <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4" />{t('quote.new')}</Button>}</>} />
+      {creating && <NewQuotation open onClose={() => setCreating(false)} />}
       <Card bodyClass="p-0">
         {isLoading ? <Spinner /> : error ? <ErrorBox error={error} /> : !data.length ? <Empty /> : (
           <Table head={[t('common.number'), t('common.title'), t('common.customer'), t('quote.revision'), t('common.status'), t('quote.validUntil'), t('quote.grossMargin'), t('quote.totalInclVat')]}>
