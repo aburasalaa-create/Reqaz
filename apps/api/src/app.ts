@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -19,6 +20,7 @@ import quotationRoutes from './routes/quotations.js';
 import templateRoutes from './routes/templates.js';
 import attachmentRoutes from './routes/attachments.js';
 import invoiceRoutes from './routes/invoices.js';
+import procurementRoutes from './routes/procurement.js';
 
 export interface AppDeps {
   cfg: Config;
@@ -37,7 +39,15 @@ export async function buildApp({ cfg, db, storage, pdf, verifier }: AppDeps) {
   app.setErrorHandler(errorHandler);
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(cors, { origin: cfg.APP_ORIGIN.split(','), credentials: false, methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'] });
-  await app.register(rateLimit, { max: cfg.RATE_LIMIT_PER_MINUTE, timeWindow: '1 minute' });
+  // Counted per signed-in session, not per IP: a whole office often shares one public address.
+  // Requests without a token (sign-in pages, health) are still counted per IP.
+  await app.register(rateLimit, {
+    max: cfg.RATE_LIMIT_PER_MINUTE, timeWindow: '1 minute',
+    keyGenerator: (req) => {
+      const auth = req.headers.authorization;
+      return auth?.startsWith('Bearer ') ? `t:${createHash('sha256').update(auth).digest('base64url').slice(0, 22)}` : `ip:${req.ip}`;
+    },
+  });
   await app.register(multipart, { limits: { fileSize: cfg.MAX_UPLOAD_MB * 1024 * 1024, files: 1, fields: 10 } });
 
   app.get('/health', async () => {
@@ -74,6 +84,7 @@ export async function buildApp({ cfg, db, storage, pdf, verifier }: AppDeps) {
       await secured.register(templateRoutes, { db });
       await secured.register(attachmentRoutes, { db, storage });
       await secured.register(invoiceRoutes, { db, storage, pdf });
+      await secured.register(procurementRoutes, { db, storage, pdf });
     });
   }, { prefix: '/api' });
 

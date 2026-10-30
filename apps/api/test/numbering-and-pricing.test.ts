@@ -60,11 +60,12 @@ describe('Database pricing engine matches the TypeScript engine', () => {
           const lines = Array.from({ length: 1 + Math.floor(rnd() * 15) }, () => ({
             quantity: dec(5000, 3), material_unit_cost: rnd() < 0.7 ? dec(900, 4) : '0', labour_unit_cost: rnd() < 0.6 ? dec(150, 4) : '0',
             equipment_unit_cost: rnd() < 0.4 ? dec(80, 4) : '0', subcontract_unit_cost: rnd() < 0.2 ? dec(50000, 4) : '0', other_unit_cost: rnd() < 0.2 ? dec(500, 4) : '0',
+            manual_rate: rnd() < 0.3 ? dec(20000, 2) : null,
           }));
           for (const [i, l] of lines.entries()) {
             await c.query(`insert into public.quotation_lines (revision_id, sort_order, description_en, quantity, material_unit_cost, labour_unit_cost,
-              equipment_unit_cost, subcontract_unit_cost, other_unit_cost) values ($1, $2, 'x', $3, $4, $5, $6, $7, $8)`,
-              [rev, i, l.quantity, l.material_unit_cost, l.labour_unit_cost, l.equipment_unit_cost, l.subcontract_unit_cost, l.other_unit_cost]);
+              equipment_unit_cost, subcontract_unit_cost, other_unit_cost, manual_rate) values ($1, $2, 'x', $3, $4, $5, $6, $7, $8, $9)`,
+              [rev, i, l.quantity, l.material_unit_cost, l.labour_unit_cost, l.equipment_unit_cost, l.subcontract_unit_cost, l.other_unit_cost, l.manual_rate]);
           }
           const db = (await c.query('select * from public.quotation_revisions where id = $1', [rev])).rows[0];
           const dbLines = (await c.query('select sell_rate, sell_total from public.quotation_lines where revision_id = $1 order by sort_order', [rev])).rows;

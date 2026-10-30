@@ -8,7 +8,8 @@ insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-4000-8000-000000000004', 'estimator@reqaz.test', '{"full_name":"Omar Estimator"}'),
   ('00000000-0000-4000-8000-000000000005', 'pm@reqaz.test', '{"full_name":"Faisal Project Manager"}'),
   ('00000000-0000-4000-8000-000000000006', 'site@reqaz.test', '{"full_name":"Yousef Site Engineer"}'),
-  ('00000000-0000-4000-8000-000000000007', 'finance@reqaz.test', '{"full_name":"Noura Finance"}');
+  ('00000000-0000-4000-8000-000000000007', 'finance@reqaz.test', '{"full_name":"Noura Finance"}'),
+  ('00000000-0000-4000-8000-000000000008', 'procurement@reqaz.test', '{"full_name":"Hassan Procurement"}');
 
 update public.app_users set full_name_ar = case email
   when 'admin@reqaz.test' then 'علاء المسؤول'
@@ -17,7 +18,8 @@ update public.app_users set full_name_ar = case email
   when 'estimator@reqaz.test' then 'عمر المقدّر'
   when 'pm@reqaz.test' then 'فيصل مدير المشروع'
   when 'site@reqaz.test' then 'يوسف مهندس الموقع'
-  when 'finance@reqaz.test' then 'نورة المالية' end;
+  when 'finance@reqaz.test' then 'نورة المالية'
+  when 'procurement@reqaz.test' then 'حسن المشتريات' end;
 
 -- admin@ became administrator automatically as the first user.
 insert into public.user_roles (user_id, role_id)
@@ -27,10 +29,13 @@ select u.id, r.id from public.app_users u join public.roles r on r.code = case u
   when 'estimator@reqaz.test' then 'estimation'
   when 'pm@reqaz.test' then 'project_management'
   when 'site@reqaz.test' then 'site_engineering'
-  when 'finance@reqaz.test' then 'finance' end;
+  when 'finance@reqaz.test' then 'finance'
+  when 'procurement@reqaz.test' then 'procurement' end;
 
 -- Placeholder VAT number for development only; the real one is entered in Settings.
 update public.company_settings set vat_number = '300000000000003';
+-- The automated tests check the role rules, so the development seed starts with roles on; the tests switch open access on themselves.
+update public.company_settings set open_access = false, allow_self_approval = false;
 
 -- Data entered as the sales user so audit and ownership look realistic.
 begin;

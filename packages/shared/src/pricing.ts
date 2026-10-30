@@ -16,6 +16,7 @@ export interface PricingLineInput {
   equipment_unit_cost?: Num;
   subcontract_unit_cost?: Num;
   other_unit_cost?: Num;
+  manual_rate?: Num | null; // a typed selling rate; overrides the cost-based rate
 }
 
 export interface PricingParams {
@@ -80,7 +81,8 @@ export function priceQuotation(lines: PricingLineInput[], p: PricingParams): Pri
     cat.other = cat.other.add(o);
     const unitCost = d(l.material_unit_cost).add(d(l.labour_unit_cost)).add(d(l.equipment_unit_cost))
       .add(d(l.subcontract_unit_cost)).add(d(l.other_unit_cost));
-    return { q, unitCost, costTotal: m.add(lb).add(e).add(s).add(o) };
+    const manual = l.manual_rate === null || l.manual_rate === undefined || l.manual_rate === '' ? null : d(l.manual_rate);
+    return { q, unitCost, costTotal: m.add(lb).add(e).add(s).add(o), manual };
   });
 
   const direct = cat.material.add(cat.labour).add(cat.equipment).add(cat.subcontract).add(cat.other);
@@ -95,8 +97,8 @@ export function priceQuotation(lines: PricingLineInput[], p: PricingParams): Pri
     : new D(0);
 
   let subtotal = new D(0);
-  const priced = prepared.map(({ q, unitCost, costTotal }) => {
-    const rate = r2(unitCost.mul(factor));
+  const priced = prepared.map(({ q, unitCost, costTotal, manual }) => {
+    const rate = manual ? r2(manual) : r2(unitCost.mul(factor));
     const total = r2(q.mul(rate));
     subtotal = subtotal.add(total);
     return { unit_cost: unitCost.toFixed(4), cost_total: fixed2(costTotal), sell_rate: fixed2(rate), sell_total: fixed2(total) };
@@ -127,7 +129,7 @@ export function priceQuotation(lines: PricingLineInput[], p: PricingParams): Pri
     vat_amount: fixed2(vat),
     total_amount: fixed2(net.add(vat)),
     gross_profit: fixed2(gp),
-    gross_margin_pct: net.gt(0) ? fixed2(r2(gp.div(net).mul(100))) : null,
+    gross_margin_pct: net.gt(0) && totalCost.gt(0) ? fixed2(r2(gp.div(net).mul(100))) : null,
     lines: priced,
   };
 }

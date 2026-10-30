@@ -45,6 +45,8 @@ export interface Me {
   full_name_ar: string | null;
   locale: 'en' | 'ar';
   permissions: string[];
+  open_access?: boolean;
+  allow_self_approval?: boolean;
   roles: { code: string; name_en: string; name_ar: string }[];
 }
 

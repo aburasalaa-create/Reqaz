@@ -6,7 +6,7 @@ const en = {
   nav: {
     dashboard: 'Dashboard', pipeline: 'Pipeline', leads: 'Leads', customers: 'Customers', suppliers: 'Suppliers',
     tenders: 'Tenders', quotations: 'Quotations', templates: 'Templates', projects: 'Contracts & projects',
-    admin: 'Administration', audit: 'Audit log', sales: 'Sales', estimating: 'Estimating', delivery: 'Delivery', system: 'System', finance: 'Finance', invoices: 'Invoices',
+    admin: 'Settings', audit: 'Audit log', more: 'More', purchases: 'Purchases', sales: 'Sales', estimating: 'Estimating', delivery: 'Delivery', system: 'System', finance: 'Finance', invoices: 'Invoices',
   },
   common: {
     save: 'Save', cancel: 'Cancel', create: 'Create', edit: 'Edit', delete: 'Delete', add: 'Add', search: 'Search…',
@@ -96,8 +96,19 @@ const en = {
     clarification: 'Clarification deadline', siteVisit: 'Site visit', bidBond: 'Bid bond required', bidBondAmount: 'Bid bond amount',
     upcoming: 'Upcoming only', opportunity: 'Opportunity',
   },
+  pur: {
+    orders: 'Purchase orders', requests: 'Purchase requests', newOrder: 'New purchase order', newRequest: 'New purchase request',
+    order: 'Purchase order', supplier: 'Supplier', newSupplier: '+ New supplier (type the name)', supplierName: 'Supplier name',
+    pickSupplier: 'Choose a supplier or type a new name.', whatFor: 'What is it for?', draft: 'Draft', item: 'Item', items: 'Items',
+    unitPrice: 'Unit price', estCost: 'Estimated cost', totalInclVat: 'Total incl. VAT', addItem: 'Type an item and press Enter',
+    issue: 'Issue order', receive: 'Mark received', close: 'Close', quoteRef: 'Supplier quotation ref.', deliveryDate: 'Delivery date',
+    paymentTerms: 'Payment terms', deliverTo: 'Deliver to', terms: 'Terms', submit: 'Send for approval', makeOrder: 'Create purchase order',
+    decidedBy: 'decided by', estTotal: 'Estimated total', comment: 'Comment',
+    status: { draft: 'Draft', submitted: 'Waiting approval', approved: 'Approved', rejected: 'Rejected', ordered: 'Ordered', cancelled: 'Cancelled',
+      issued: 'Issued', received: 'Received', closed: 'Closed' },
+  },
   quote: {
-    title: 'Quotations', new: 'New quotation', opportunity: 'Opportunity', newOpportunity: 'New opportunity (named after this quotation)', pickCustomer: 'Choose a customer first.', needTitle: 'Enter a title for the quotation.', noOpportunity: 'This customer has no open opportunity. Ask sales to open one.', revision: 'Revision', revisions: 'Revisions', newRevision: 'New revision',
+    title: 'Quotations', new: 'New quotation', rateHint: 'Type the rate, or leave empty to price from the costing', opportunity: 'Opportunity', newOpportunity: 'New opportunity (named after this quotation)', pickCustomer: 'Choose a customer first.', needTitle: 'Enter a title for the quotation.', noOpportunity: 'This customer has no open opportunity. Ask sales to open one.', revision: 'Revision', revisions: 'Revisions', newRevision: 'New revision',
     template: 'Terms template', boqTemplate: 'Insert BOQ template', lines: 'Bill of quantities', addLine: 'Add line',
     section: 'Section', item: 'Item', descEn: 'Description (English)', descAr: 'Description (Arabic)', unit: 'Unit', qty: 'Qty',
     material: 'Material', labour: 'Labour', equipment: 'Equipment', subcontract: 'Subcontract', other: 'Other',
@@ -122,7 +133,7 @@ const en = {
   admin: {
     title: 'Administration', users: 'Users', roles: 'Roles', invite: 'Invite user', settings: 'Company settings', legalEn: 'Legal name (English)',
     legalAr: 'Legal name (Arabic)', addressEn: 'Address (English)', addressAr: 'Address (Arabic)', validity: 'Default quotation validity (days)',
-    selfApproval: 'Allow preparers to approve their own quotations', deactivate: 'Deactivate', activate: 'Activate', permissions: 'Permissions',
+    selfApproval: 'Allow people to approve their own quotations and purchase requests', openAccess: 'Open access: everyone can do all daily work (only admins manage users, settings and the audit log). Turn off to use roles.', deactivate: 'Deactivate', activate: 'Activate', permissions: 'Permissions',
     unified: 'Unified number (700…)', building: 'Building number', street: 'Street', district: 'District', city: 'City', postal: 'Postal code',
     additional: 'Additional number', bank: 'Bank name', iban: 'IBAN (SA + 22 digits)', accountNo: 'Account number', banks: 'Bank accounts', addBank: 'Add bank account', onInvoices: 'On invoices', stamp: 'Company stamp', noStamp: 'No stamp uploaded', uploadStamp: 'Upload stamp (PNG/JPEG)',
     stampHint: 'Printed only on issued invoices and notes, never on drafts. Use a PNG with a transparent background.',
@@ -136,7 +147,7 @@ const ar: typeof en = {
   nav: {
     dashboard: 'لوحة القيادة', pipeline: 'مسار المبيعات', leads: 'العملاء المحتملون', customers: 'العملاء', suppliers: 'الموردون',
     tenders: 'المناقصات', quotations: 'عروض الأسعار', templates: 'القوالب', projects: 'العقود والمشاريع',
-    admin: 'الإدارة', audit: 'سجل التدقيق', sales: 'المبيعات', estimating: 'التسعير', delivery: 'التنفيذ', system: 'النظام', finance: 'المالية', invoices: 'الفواتير',
+    admin: 'الإعدادات', audit: 'سجل التدقيق', more: 'المزيد', purchases: 'المشتريات', sales: 'المبيعات', estimating: 'التسعير', delivery: 'التنفيذ', system: 'النظام', finance: 'المالية', invoices: 'الفواتير',
   },
   common: {
     save: 'حفظ', cancel: 'إلغاء', create: 'إنشاء', edit: 'تعديل', delete: 'حذف', add: 'إضافة', search: 'بحث…',
@@ -226,8 +237,19 @@ const ar: typeof en = {
     clarification: 'آخر موعد للاستفسارات', siteVisit: 'زيارة الموقع', bidBond: 'ضمان ابتدائي مطلوب', bidBondAmount: 'قيمة الضمان الابتدائي',
     upcoming: 'القادمة فقط', opportunity: 'الفرصة',
   },
+  pur: {
+    orders: 'أوامر الشراء', requests: 'طلبات الشراء', newOrder: 'أمر شراء جديد', newRequest: 'طلب شراء جديد',
+    order: 'أمر شراء', supplier: 'المورد', newSupplier: '+ مورد جديد (اكتب الاسم)', supplierName: 'اسم المورد',
+    pickSupplier: 'اختر مورداً أو اكتب اسماً جديداً.', whatFor: 'الغرض من الطلب', draft: 'مسودة', item: 'البند', items: 'البنود',
+    unitPrice: 'سعر الوحدة', estCost: 'التكلفة التقديرية', totalInclVat: 'الإجمالي شامل الضريبة', addItem: 'اكتب البند واضغط Enter',
+    issue: 'إصدار الأمر', receive: 'تم الاستلام', close: 'إغلاق', quoteRef: 'مرجع عرض المورد', deliveryDate: 'تاريخ التسليم',
+    paymentTerms: 'شروط الدفع', deliverTo: 'التسليم إلى', terms: 'الشروط', submit: 'إرسال للاعتماد', makeOrder: 'إنشاء أمر شراء',
+    decidedBy: 'قرار', estTotal: 'الإجمالي التقديري', comment: 'تعليق',
+    status: { draft: 'مسودة', submitted: 'بانتظار الاعتماد', approved: 'معتمد', rejected: 'مرفوض', ordered: 'تم الطلب', cancelled: 'ملغى',
+      issued: 'صادر', received: 'مستلم', closed: 'مغلق' },
+  },
   quote: {
-    title: 'عروض الأسعار', new: 'عرض سعر جديد', opportunity: 'الفرصة', newOpportunity: 'فرصة جديدة (باسم عرض السعر)', pickCustomer: 'اختر العميل أولاً.', needTitle: 'أدخل عنوان عرض السعر.', noOpportunity: 'لا توجد فرصة مفتوحة لهذا العميل. اطلب من فريق المبيعات فتح فرصة.', revision: 'المراجعة', revisions: 'المراجعات', newRevision: 'مراجعة جديدة',
+    title: 'عروض الأسعار', new: 'عرض سعر جديد', rateHint: 'اكتب سعر الوحدة، أو اتركه فارغاً ليُحسب من التكاليف', opportunity: 'الفرصة', newOpportunity: 'فرصة جديدة (باسم عرض السعر)', pickCustomer: 'اختر العميل أولاً.', needTitle: 'أدخل عنوان عرض السعر.', noOpportunity: 'لا توجد فرصة مفتوحة لهذا العميل. اطلب من فريق المبيعات فتح فرصة.', revision: 'المراجعة', revisions: 'المراجعات', newRevision: 'مراجعة جديدة',
     template: 'قالب الشروط', boqTemplate: 'إدراج قالب جدول كميات', lines: 'جدول الكميات', addLine: 'إضافة بند',
     section: 'القسم', item: 'البند', descEn: 'الوصف (إنجليزي)', descAr: 'الوصف (عربي)', unit: 'الوحدة', qty: 'الكمية',
     material: 'مواد', labour: 'عمالة', equipment: 'معدات', subcontract: 'مقاول باطن', other: 'أخرى',
@@ -252,7 +274,7 @@ const ar: typeof en = {
   admin: {
     title: 'الإدارة', users: 'المستخدمون', roles: 'الأدوار', invite: 'دعوة مستخدم', settings: 'إعدادات الشركة', legalEn: 'الاسم القانوني (إنجليزي)',
     legalAr: 'الاسم القانوني (عربي)', addressEn: 'العنوان (إنجليزي)', addressAr: 'العنوان (عربي)', validity: 'مدة صلاحية العرض الافتراضية (أيام)',
-    selfApproval: 'السماح لمُعد العرض باعتماده بنفسه', deactivate: 'إيقاف', activate: 'تفعيل', permissions: 'الصلاحيات',
+    selfApproval: 'السماح للمستخدم باعتماد عروض الأسعار وطلبات الشراء التي أعدّها', openAccess: 'وصول مفتوح: يستطيع الجميع القيام بكل الأعمال اليومية (إدارة المستخدمين والإعدادات وسجل التدقيق للمسؤول فقط). أوقفه لاستخدام الأدوار.', deactivate: 'إيقاف', activate: 'تفعيل', permissions: 'الصلاحيات',
     unified: 'الرقم الموحد (700…)', building: 'رقم المبنى', street: 'الشارع', district: 'الحي', city: 'المدينة', postal: 'الرمز البريدي',
     additional: 'الرقم الإضافي', bank: 'اسم البنك', iban: 'رقم الآيبان (SA + 22 رقماً)', accountNo: 'رقم الحساب', banks: 'الحسابات البنكية', addBank: 'إضافة حساب بنكي', onInvoices: 'يظهر في الفواتير', stamp: 'ختم الشركة', noStamp: 'لم يُرفع ختم', uploadStamp: 'رفع الختم (PNG/JPEG)',
     stampHint: 'يُطبع على الفواتير والإشعارات الصادرة فقط، ولا يظهر على المسودات. يُفضّل PNG بخلفية شفافة.',

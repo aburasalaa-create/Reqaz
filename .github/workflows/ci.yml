@@ -36,3 +36,25 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with: { name: playwright-report, path: apps/web/test-results, retention-days: 7 }
+
+  # After the tests pass on main: bring the staging database up to date, then ask Render to deploy this commit.
+  # Both secrets are set once in GitHub → Settings → Secrets and variables → Actions. Without them this job does nothing.
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency: { group: deploy-staging, cancel-in-progress: false }
+    env:
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --workspace @rms/api --include-workspace-root
+      - name: Migrate the staging database
+        if: env.DATABASE_URL != ''
+        run: node scripts/migrate.mjs
+      - name: Deploy on Render
+        if: env.DEPLOY_HOOK != ''
+        run: curl -fsS -X POST "$DEPLOY_HOOK" > /dev/null && echo "Render deploy started"

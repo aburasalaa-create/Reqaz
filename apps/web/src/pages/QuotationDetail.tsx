@@ -17,7 +17,7 @@ const COST_LABEL: Record<(typeof COST_FIELDS)[number], string> = {
   material_unit_cost: 'quote.material', labour_unit_cost: 'quote.labour', equipment_unit_cost: 'quote.equipment',
   subcontract_unit_cost: 'quote.subcontract', other_unit_cost: 'quote.other',
 };
-const LINE_FIELDS = ['section', 'item_code', 'description_en', 'description_ar', 'unit', 'quantity', ...COST_FIELDS] as const;
+const LINE_FIELDS = ['section', 'item_code', 'description_en', 'description_ar', 'unit', 'quantity', 'manual_rate', ...COST_FIELDS] as const;
 const PARAM_FIELDS = ['overhead_pct', 'contingency_pct', 'pricing_method', 'markup_pct', 'target_margin_pct', 'discount_type', 'discount_value', 'vat_code'] as const;
 
 export default function QuotationDetail() {
@@ -39,7 +39,7 @@ export default function QuotationDetail() {
   const [reject, setReject] = useState<string | null>(null);
   const [award, setAward] = useState<any>(null);
   const [lost, setLost] = useState<string | null>(null);
-  const [showCosts, setShowCosts] = useState(true);
+  const [showCostsPref, setShowCosts] = useState<boolean | null>(null);
 
   // Fields the user is editing right now; server refreshes must not overwrite them.
   const dirty = useRef(new Set<string>());
@@ -99,6 +99,8 @@ export default function QuotationDetail() {
   const editable = draft && can('quotations.write') && q.status === 'open';
   const isLatest = latest.id === r.id;
   const cur = q.currency;
+  // Simple view by default: description, quantity and a typed rate. Costing opens automatically when costs exist.
+  const showCosts = showCostsPref ?? Number(r.direct_cost) > 0;
 
   const commitLine = (row: any, field: string) => {
     dirty.current.delete(`${row.id}:${field}`);
@@ -130,6 +132,14 @@ export default function QuotationDetail() {
   const pdf = (lang: string) => api.openFile(`/revisions/${r.id}/pdf?lang=${lang}`).catch((e) => toast(e.message, 'error'));
 
   const canApprove = can('quotations.approve') && r.status === 'pending_approval';
+  // With self-approval allowed, an approver finishes a draft in one click (submitted and approved, both recorded).
+  const canQuickApprove = editable && can('quotations.approve') && !!me?.allow_self_approval;
+  const quickApprove = async () => {
+    try {
+      await api.post(`/revisions/${revId}/transition`, { action: 'submit_for_approval' });
+      await transition.mutateAsync({ action: 'approve' });
+    } catch (e) { onErr(e as Error); }
+  };
   const canWithdraw = r.status === 'pending_approval' && r.submitted_for_approval_by === me?.id;
   const P = preview ?? r;
 
@@ -167,7 +177,8 @@ export default function QuotationDetail() {
           {r.approved_by_name && <span className="text-xs">{t('quote.approve')}: {r.approved_by_name} · {dateTime(r.approved_at)}</span>}
         </div>
         <div className="flex flex-wrap gap-2">
-          {editable && <Button onClick={() => transition.mutate({ action: 'submit_for_approval' })} busy={transition.isPending}>{t('quote.submitForApproval')}</Button>}
+          {canQuickApprove && <Button variant="success" onClick={quickApprove} busy={transition.isPending} data-testid="quick-approve">{t('quote.approve')}</Button>}
+          {editable && <Button variant={canQuickApprove ? 'secondary' : undefined} onClick={() => transition.mutate({ action: 'submit_for_approval' })} busy={transition.isPending}>{t('quote.submitForApproval')}</Button>}
           {canWithdraw && <Button variant="secondary" onClick={() => transition.mutate({ action: 'withdraw' })}>{t('quote.withdraw')}</Button>}
           {canApprove && <><Button variant="danger" onClick={() => setReject('')}>{t('quote.reject')}</Button><Button variant="success" busy={transition.isPending} onClick={() => transition.mutate({ action: 'approve' })}>{t('quote.approve')}</Button></>}
           {r.status === 'approved' && isLatest && can('quotations.submit') && <Button busy={transition.isPending} onClick={() => transition.mutate({ action: 'mark_submitted' })}>{t('quote.markSubmitted')}</Button>}
@@ -179,20 +190,20 @@ export default function QuotationDetail() {
       <div className="grid gap-4 2xl:grid-cols-[1fr_22rem]">
         <div className="min-w-0 space-y-4">
           <Card title={t('quote.lines')} bodyClass="p-0" actions={<>
-            <label className="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" checked={showCosts} onChange={(e) => setShowCosts(e.target.checked)} />{t('quote.costBreakdown')}</label>
+            <label className="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" data-testid="show-costs" checked={showCosts} onChange={(e) => setShowCosts(e.target.checked)} />{t('quote.costBreakdown')}</label>
             {editable && boqs.data?.length > 0 && <Select className="w-52" value="" onChange={(e) => e.target.value && applyBoq.mutate(e.target.value)} aria-label={t('quote.boqTemplate')}>
               <option value="">{t('quote.boqTemplate')}…</option>{boqs.data.filter((b: any) => b.is_active).map((b: any) => <option key={b.id} value={b.id}>{b.name} ({b.item_count})</option>)}</Select>}
             {editable && <Button variant="secondary" busy={addLine.isPending} onClick={() => addLine.mutate()} data-testid="add-line"><Plus className="h-4 w-4" />{t('quote.addLine')}</Button>}
           </>}>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-sm">
+              <table className={cx('w-full text-sm', showCosts ? 'min-w-[900px]' : 'min-w-[560px]')}>
                 <thead className="bg-slate-50">
                   <tr>
-                    <th className="th w-24">{t('quote.section')}</th><th className="th w-14">{t('quote.item')}</th><th className="th min-w-[14rem]">{t('quote.descEn')} / {t('quote.descAr')}</th>
+                    {showCosts && <><th className="th w-24">{t('quote.section')}</th><th className="th w-14">{t('quote.item')}</th></>}<th className="th min-w-[14rem]">{t('quote.descEn')} / {t('quote.descAr')}</th>
                     <th className="th w-16">{t('quote.unit')}</th><th className="th w-20 text-end">{t('quote.qty')}</th>
                     {showCosts && COST_FIELDS.map((f) => <th key={f} className="th w-24 text-end">{t(COST_LABEL[f])}</th>)}
                     {showCosts && <th className="th w-24 text-end">{t('quote.costTotal')}</th>}
-                    <th className="th w-24 text-end">{t('quote.sellRate')}</th><th className="th w-28 text-end">{t('quote.sellTotal')}</th>{editable && <th className="w-8" />}
+                    <th className="th w-28 text-end">{t('quote.sellRate')}</th><th className="th w-28 text-end">{t('quote.sellTotal')}</th>{editable && <th className="w-8" />}
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -204,14 +215,18 @@ export default function QuotationDetail() {
                       : <span className={cx('block px-1', cls)} dir={f === 'description_ar' ? 'rtl' : undefined}>{['quantity', ...COST_FIELDS].includes(f) ? num(l[f], 4) : l[f]}</span>;
                     return (
                       <tr key={l.id} className="align-top">
-                        <td className="px-2 py-1">{cell('section')}</td>
-                        <td className="px-2 py-1">{cell('item_code')}</td>
+                        {showCosts && <><td className="px-2 py-1">{cell('section')}</td>
+                        <td className="px-2 py-1">{cell('item_code')}</td></>}
                         <td className="px-2 py-1">{cell('description_en')}{cell('description_ar', 'text-slate-600')}</td>
                         <td className="px-2 py-1">{cell('unit')}</td>
                         <td className="px-2 py-1">{cell('quantity', 'text-end tabular-nums', 'number')}</td>
                         {showCosts && COST_FIELDS.map((f) => <td key={f} className="bg-amber-50/40 px-2 py-1">{cell(f, 'text-end tabular-nums', 'number')}</td>)}
                         {showCosts && <td className="bg-amber-50/40 px-2 py-1 text-end tabular-nums text-slate-600">{money(pl?.cost_total ?? l.cost_total)}</td>}
-                        <td className="px-2 py-1 text-end tabular-nums">{money(pl?.sell_rate ?? l.sell_rate)}</td>
+                        <td className="px-2 py-1 text-end tabular-nums">{editable
+                          ? <input data-testid={`line-${i}-manual_rate`} type="number" step="any" min="0" className="w-full rounded border border-slate-200 bg-white px-1 py-0.5 text-end tabular-nums focus:border-brand-500 focus:outline-none"
+                              value={l.manual_rate ?? ''} placeholder={money(pl?.sell_rate ?? l.sell_rate)} title={t('quote.rateHint')}
+                              onChange={(e) => setRow(i, 'manual_rate', e.target.value)} onBlur={() => commitLine(l, 'manual_rate')} />
+                          : money(pl?.sell_rate ?? l.sell_rate)}</td>
                         <td className="px-2 py-1 text-end font-medium tabular-nums" data-testid={`line-${i}-total`}>{money(pl?.sell_total ?? l.sell_total)}</td>
                         {editable && <td className="px-1 py-1"><button aria-label={t('common.delete')} className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600" onClick={() => delLine.mutate(l.id)}><Trash2 className="h-4 w-4" /></button></td>}
                       </tr>
@@ -232,6 +247,7 @@ export default function QuotationDetail() {
         <div className="space-y-4">
           <Card title={t('quote.pricing')}>
             <fieldset disabled={!editable} className="grid grid-cols-2 gap-3">
+              {showCosts && <>
               <Field label={t('quote.overhead')}><Input type="number" step="any" name="overhead_pct" value={params.overhead_pct ?? ''} onChange={(e) => editParam('overhead_pct', e.target.value)} onBlur={() => commitParam('overhead_pct', params.overhead_pct)} /></Field>
               <Field label={t('quote.contingency')}><Input type="number" step="any" name="contingency_pct" value={params.contingency_pct ?? ''} onChange={(e) => editParam('contingency_pct', e.target.value)} onBlur={() => commitParam('contingency_pct', params.contingency_pct)} /></Field>
               <Field label={t('quote.method')} className="col-span-2"><Select name="pricing_method" value={params.pricing_method ?? 'markup'} onChange={(e) => commitParam('pricing_method', e.target.value)}>
@@ -239,6 +255,7 @@ export default function QuotationDetail() {
               {params.pricing_method === 'margin'
                 ? <Field label={t('quote.margin')}><Input type="number" step="any" name="target_margin_pct" value={params.target_margin_pct ?? ''} onChange={(e) => editParam('target_margin_pct', e.target.value)} onBlur={() => commitParam('target_margin_pct', params.target_margin_pct)} /></Field>
                 : <Field label={t('quote.markup')}><Input type="number" step="any" name="markup_pct" value={params.markup_pct ?? ''} onChange={(e) => editParam('markup_pct', e.target.value)} onBlur={() => commitParam('markup_pct', params.markup_pct)} /></Field>}
+              </>}
               <Field label={t('quote.vat')}><Select name="vat_code" value={params.vat_code ?? 'S15'} onChange={(e) => commitParam('vat_code', e.target.value)}>
                 {lk?.vat_codes.map((v: any) => <option key={v.code} value={v.code}>{v.name_en}</option>)}</Select></Field>
               <Field label={t('quote.discountType')}><Select name="discount_type" value={params.discount_type ?? 'none'} onChange={(e) => commitParam('discount_type', e.target.value)}>
@@ -248,16 +265,16 @@ export default function QuotationDetail() {
           </Card>
           <Card title={t('common.total')}>
             <dl className="space-y-1 text-sm" data-testid="totals">
-              {([['directCost', P.direct_cost], ['overheadAmt', P.overhead_amount], ['contingencyAmt', P.contingency_amount], ['totalCost', P.total_cost]] as const).map(([k, v]) => (
+              {showCosts && <>{([['directCost', P.direct_cost], ['overheadAmt', P.overhead_amount], ['contingencyAmt', P.contingency_amount], ['totalCost', P.total_cost]] as const).map(([k, v]) => (
                 <div key={k} className="flex justify-between text-slate-500"><dt>{t(`quote.${k}`)}</dt><dd className="tabular-nums">{money(v)}</dd></div>
               ))}
-              <div className="my-2 border-t" />
+              <div className="my-2 border-t" /></>}
               <div className="flex justify-between"><dt>{t('quote.subtotal')}</dt><dd className="tabular-nums">{money(P.subtotal)}</dd></div>
               {Number(P.discount_amount) > 0 && <div className="flex justify-between"><dt>{t('quote.discount')}</dt><dd className="tabular-nums">({money(P.discount_amount)})</dd></div>}
               <div className="flex justify-between"><dt>{t('quote.net')}</dt><dd className="tabular-nums" data-testid="net">{money(P.net_amount)}</dd></div>
               <div className="flex justify-between"><dt>{t('quote.vatAmt')}</dt><dd className="tabular-nums" data-testid="vat">{money(P.vat_amount)}</dd></div>
               <div className="flex justify-between border-t pt-1 text-base font-semibold"><dt>{t('quote.totalInclVat')}</dt><dd className="tabular-nums" data-testid="grand-total">{cur} {money(P.total_amount)}</dd></div>
-              <div className="mt-2 flex justify-between rounded bg-amber-50 px-2 py-1 text-amber-800"><dt>{t('quote.grossProfit')}</dt><dd className="tabular-nums">{money(P.gross_profit)} {P.gross_margin_pct !== null && `(${P.gross_margin_pct}%)`}</dd></div>
+              {Number(P.total_cost) > 0 && <div className="mt-2 flex justify-between rounded bg-amber-50 px-2 py-1 text-amber-800"><dt>{t('quote.grossProfit')}</dt><dd className="tabular-nums">{money(P.gross_profit)} {P.gross_margin_pct !== null && `(${P.gross_margin_pct}%)`}</dd></div>}
             </dl>
             {editable && <p className="mt-2 text-xs text-slate-400">{t('quote.livePreview')}</p>}
           </Card>

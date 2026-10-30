@@ -26,7 +26,7 @@ const schema = z.object({
   CHROMIUM_PATH: z.string().optional(),
   // Built web app (apps/web/dist) to serve from the same origin; empty when the web app is hosted separately.
   WEB_DIST: z.string().optional(),
-  RATE_LIMIT_PER_MINUTE: z.coerce.number().default(300),
+  RATE_LIMIT_PER_MINUTE: z.coerce.number().default(600),
 });
 
 export type Config = z.infer<typeof schema>;

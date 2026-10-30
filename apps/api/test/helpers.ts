@@ -20,6 +20,7 @@ export const USERS = {
   pm: 'pm@reqaz.test',
   site: 'site@reqaz.test',
   finance: 'finance@reqaz.test',
+  procurement: 'procurement@reqaz.test',
 } as const;
 export type Who = keyof typeof USERS;
 

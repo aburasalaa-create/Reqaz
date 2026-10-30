@@ -15,6 +15,7 @@ import Templates from './pages/Templates';
 import Admin from './pages/Admin';
 import { InvoiceDetail, Invoices } from './pages/Invoices';
 import { Audit, Leads, Projects, Quotations, Suppliers, TenderDetail, Tenders } from './pages/Lists';
+import { PurchaseOrderDetail, PurchaseRequestDetail, Purchases } from './pages/Purchases';
 
 function Guard({ perm, children }: { perm: string | string[]; children: React.ReactNode }) {
   const { can } = useAuth();
@@ -44,6 +45,9 @@ export default function App() {
         <Route path="leads" element={<Guard perm="crm.read"><Leads /></Guard>} />
         <Route path="customers" element={<Guard perm="customers.read"><Customers /></Guard>} />
         <Route path="customers/:id" element={<Guard perm="customers.read"><CustomerDetail /></Guard>} />
+        <Route path="purchases" element={<Guard perm="procurement.read"><Purchases /></Guard>} />
+        <Route path="purchases/orders/:id" element={<Guard perm="procurement.read"><PurchaseOrderDetail /></Guard>} />
+        <Route path="purchases/requests/:id" element={<Guard perm="procurement.read"><PurchaseRequestDetail /></Guard>} />
         <Route path="suppliers" element={<Guard perm="suppliers.read"><Suppliers /></Guard>} />
         <Route path="tenders" element={<Guard perm="tenders.read"><Tenders /></Guard>} />
         <Route path="tenders/:id" element={<Guard perm="tenders.read"><TenderDetail /></Guard>} />
