@@ -97,7 +97,7 @@ const en = {
     upcoming: 'Upcoming only', opportunity: 'Opportunity',
   },
   quote: {
-    title: 'Quotations', new: 'New quotation', revision: 'Revision', revisions: 'Revisions', newRevision: 'New revision',
+    title: 'Quotations', new: 'New quotation', opportunity: 'Opportunity', newOpportunity: 'New opportunity (named after this quotation)', pickCustomer: 'Choose a customer first.', needTitle: 'Enter a title for the quotation.', noOpportunity: 'This customer has no open opportunity. Ask sales to open one.', revision: 'Revision', revisions: 'Revisions', newRevision: 'New revision',
     template: 'Terms template', boqTemplate: 'Insert BOQ template', lines: 'Bill of quantities', addLine: 'Add line',
     section: 'Section', item: 'Item', descEn: 'Description (English)', descAr: 'Description (Arabic)', unit: 'Unit', qty: 'Qty',
     material: 'Material', labour: 'Labour', equipment: 'Equipment', subcontract: 'Subcontract', other: 'Other',
@@ -227,7 +227,7 @@ const ar: typeof en = {
     upcoming: 'القادمة فقط', opportunity: 'الفرصة',
   },
   quote: {
-    title: 'عروض الأسعار', new: 'عرض سعر جديد', revision: 'المراجعة', revisions: 'المراجعات', newRevision: 'مراجعة جديدة',
+    title: 'عروض الأسعار', new: 'عرض سعر جديد', opportunity: 'الفرصة', newOpportunity: 'فرصة جديدة (باسم عرض السعر)', pickCustomer: 'اختر العميل أولاً.', needTitle: 'أدخل عنوان عرض السعر.', noOpportunity: 'لا توجد فرصة مفتوحة لهذا العميل. اطلب من فريق المبيعات فتح فرصة.', revision: 'المراجعة', revisions: 'المراجعات', newRevision: 'مراجعة جديدة',
     template: 'قالب الشروط', boqTemplate: 'إدراج قالب جدول كميات', lines: 'جدول الكميات', addLine: 'إضافة بند',
     section: 'القسم', item: 'البند', descEn: 'الوصف (إنجليزي)', descAr: 'الوصف (عربي)', unit: 'الوحدة', qty: 'الكمية',
     material: 'مواد', labour: 'عمالة', equipment: 'معدات', subcontract: 'مقاول باطن', other: 'أخرى',
