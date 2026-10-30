@@ -13,7 +13,8 @@ export default async function coreRoutes(app: FastifyInstance, { db, cfg }: { db
     if (!user || !user.is_active) throw new HttpError(403, 'Your account is not active in RMS. Ask an administrator for access.', 'inactive');
     const permissions = (await many<{ p: string }>(t, 'select public.current_permissions() as p')).map((r) => r.p);
     const roles = await many(t, `select r.code, r.name_en, r.name_ar from public.user_roles ur join public.roles r on r.id = ur.role_id where ur.user_id = auth.uid()`);
-    return { ...user, permissions, roles };
+    const settings = await one<{ open_access: boolean; allow_self_approval: boolean }>(t, 'select open_access, allow_self_approval from public.company_settings');
+    return { ...user, permissions, roles, open_access: !!settings?.open_access, allow_self_approval: !!settings?.allow_self_approval };
   }));
 
   app.patch('/me', async (req) => {
@@ -141,6 +142,7 @@ export default async function coreRoutes(app: FastifyInstance, { db, cfg }: { db
       default_vat_rate: z.coerce.number().min(0).max(99).optional(),
       quotation_validity_days: z.coerce.number().int().min(1).max(365).optional(),
       allow_self_approval: z.boolean().optional(),
+      open_access: z.boolean().optional(),
     }).parse(req.body);
     return tx(db, req, async (t) => {
       const cols = Object.keys(body).filter((k) => (body as any)[k] !== undefined);

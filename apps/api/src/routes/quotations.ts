@@ -48,6 +48,7 @@ const lineBody = z.object({
   equipment_unit_cost: decimal.optional(),
   subcontract_unit_cost: decimal.optional(),
   other_unit_cost: decimal.optional(),
+  manual_rate: z.union([z.literal(''), z.null(), decimal]).optional().transform((v) => (v === '' ? null : v)),
 }).strict();
 
 const TRANSITIONS = {

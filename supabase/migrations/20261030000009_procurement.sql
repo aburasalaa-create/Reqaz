@@ -141,7 +141,7 @@ begin
     if not public.has_permission('procurement.approve') then
       raise exception 'You do not have permission to approve purchase requests' using errcode = 'insufficient_privilege';
     end if;
-    if auth.uid() = old.requested_by then
+    if auth.uid() = old.requested_by and not coalesce((select allow_self_approval from public.company_settings), false) then
       raise exception 'A purchase request must be approved by someone other than the requester' using errcode = 'insufficient_privilege';
     end if;
     if new.status = 'rejected' and length(trim(coalesce(new.decision_comment, ''))) = 0 then

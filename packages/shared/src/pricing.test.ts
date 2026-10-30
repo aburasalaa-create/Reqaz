@@ -96,3 +96,20 @@ describe('priceQuotation', () => {
     expect(() => priceQuotation([], { ...base, pricing_method: 'margin', target_margin_pct: 100 })).toThrow();
   });
 });
+
+describe('typed rates', () => {
+  const p = { overhead_pct: 10, contingency_pct: 5, pricing_method: 'markup' as const, markup_pct: 20, target_margin_pct: 0, discount_type: 'none' as const, discount_value: 0, vat_rate: 15 };
+  it('prices a line as quantity × typed rate and shows no margin without costs', () => {
+    const r = priceQuotation([{ quantity: '12.5', manual_rate: '310.40' }, { quantity: 2, manual_rate: 1000 }], p);
+    expect(r.lines.map((l) => l.sell_total)).toEqual(['3880.00', '2000.00']);
+    expect(r.subtotal).toBe('5880.00');
+    expect(r.vat_amount).toBe('882.00');
+    expect(r.total_amount).toBe('6762.00');
+    expect(r.gross_margin_pct).toBeNull();
+  });
+  it('mixes typed rates with cost-based lines', () => {
+    const r = priceQuotation([{ quantity: 1, material_unit_cost: 100 }, { quantity: 1, material_unit_cost: 50, manual_rate: 80 }], p);
+    expect(r.lines[1].sell_rate).toBe('80.00');
+    expect(r.gross_margin_pct).not.toBeNull();
+  });
+});

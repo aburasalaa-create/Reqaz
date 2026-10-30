@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react';
 import { api } from '../lib/api';
+import { useAuth } from '../lib/auth';
 import { pick } from '../lib/format';
 import { Badge, Button, Card, ErrorBox, Field, Input, Modal, PageHeader, Spinner, useToast } from '../components/ui';
 import StampSetting from '../components/StampSetting';
@@ -24,15 +25,16 @@ export default function Admin() {
   const saveRoles = useMutation({ mutationFn: () => api.put(`/admin/users/${editRoles.id}/roles`, { roles: editRoles.roles }), onSuccess: () => { refresh(); setEditRoles(null); }, onError: onErr });
   const toggle = useMutation({ mutationFn: (u: any) => api.patch(`/admin/users/${u.id}`, { is_active: !u.is_active }), onSuccess: refresh, onError: onErr });
   const doInvite = useMutation({ mutationFn: () => api.post('/admin/users', invite), onSuccess: () => { refresh(); setInvite(null); } });
+  const { refresh: reloadMe } = useAuth();
   const saveSettings = useMutation({
     mutationFn: () => api.patch('/admin/settings', {
       legal_name_en: settings.legal_name_en, legal_name_ar: settings.legal_name_ar, vat_number: settings.vat_number ?? '', cr_number: settings.cr_number ?? '',
       address_en: settings.address_en ?? '', address_ar: settings.address_ar ?? '', phone: settings.phone ?? '', email: settings.email ?? '', website: settings.website ?? '',
       ...Object.fromEntries(['unified_number','building_number','street','district','city','postal_code','additional_number','invoice_terms_en','invoice_terms_ar'].map((k) => [k, settings[k] ?? ''])),
       bank_accounts: (settings.bank_accounts ?? []).filter((b: any) => b.bank_name || b.iban),
-      quotation_validity_days: Number(settings.quotation_validity_days), allow_self_approval: !!settings.allow_self_approval,
+      quotation_validity_days: Number(settings.quotation_validity_days), allow_self_approval: !!settings.allow_self_approval, open_access: !!settings.open_access,
     }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lookups'] }); toast(t('common.saved')); }, onError: onErr,
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['lookups'] }); toast(t('common.saved')); void reloadMe(); }, onError: onErr,
   });
 
   if (users.isLoading || roles.isLoading) return <Spinner />;
@@ -84,6 +86,7 @@ export default function Admin() {
             <Button variant="secondary" onClick={() => setSettings({ ...settings, bank_accounts: [...(settings.bank_accounts ?? []), { bank_name: '', iban: '', show_on_invoices: true }] })}>{t('admin.addBank')}</Button>
           </div>
           <StampSetting />
+          <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={!!settings.open_access} onChange={(e) => setSettings({ ...settings, open_access: e.target.checked })} />{t('admin.openAccess')}</label>
           <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={!!settings.allow_self_approval} onChange={(e) => setSettings({ ...settings, allow_self_approval: e.target.checked })} />{t('admin.selfApproval')}</label>
         </div>
       </Card>}

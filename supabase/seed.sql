@@ -34,6 +34,8 @@ select u.id, r.id from public.app_users u join public.roles r on r.code = case u
 
 -- Placeholder VAT number for development only; the real one is entered in Settings.
 update public.company_settings set vat_number = '300000000000003';
+-- The automated tests check the role rules, so the development seed starts with roles on; the tests switch open access on themselves.
+update public.company_settings set open_access = false, allow_self_approval = false;
 
 -- Data entered as the sales user so audit and ownership look realistic.
 begin;
