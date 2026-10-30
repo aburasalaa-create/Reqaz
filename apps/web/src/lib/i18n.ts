@@ -6,7 +6,7 @@ const en = {
   nav: {
     dashboard: 'Dashboard', pipeline: 'Pipeline', leads: 'Leads', customers: 'Customers', suppliers: 'Suppliers',
     tenders: 'Tenders', quotations: 'Quotations', templates: 'Templates', projects: 'Contracts & projects',
-    admin: 'Settings', audit: 'Audit log', more: 'More', purchases: 'Purchases', sales: 'Sales', estimating: 'Estimating', delivery: 'Delivery', system: 'System', finance: 'Finance', invoices: 'Invoices',
+    admin: 'Settings', audit: 'Audit log', more: 'More', purchases: 'Purchases', expenses: 'Expenses', sales: 'Sales', estimating: 'Estimating', delivery: 'Delivery', system: 'System', finance: 'Finance', invoices: 'Invoices',
   },
   common: {
     save: 'Save', cancel: 'Cancel', create: 'Create', edit: 'Edit', delete: 'Delete', add: 'Add', search: 'Search…',
@@ -96,6 +96,17 @@ const en = {
     clarification: 'Clarification deadline', siteVisit: 'Site visit', bidBond: 'Bid bond required', bidBondAmount: 'Bid bond amount',
     upcoming: 'Upcoming only', opportunity: 'Opportunity',
   },
+  exp: {
+    new: 'New expense', description: 'What was it for?', descriptionHint: 'e.g. Diesel for site generator', amount: 'Amount before VAT', vat: 'VAT',
+    vatHint: 'Fill in 15% of the amount; check it against the receipt', total: 'Total', paidTo: 'Paid to', paidToHint: 'Shop or supplier name',
+    category: 'Category', project: 'Project', paidBy: 'Paid by', byCompany: 'Company (bank, card or petty cash)', byEmployee: 'Staff member (to be reimbursed)',
+    invoiceNo: 'Receipt / invoice no.', supplierVat: "Supplier's VAT no.", addReceipt: 'Take a photo of the receipt or choose a file', noReceipt: 'no receipt',
+    thisMonth: 'Approved this month', vatThisMonth: 'VAT paid this month', waiting: 'Waiting approval', owedToStaff: 'To reimburse staff', markPaid: 'Mark paid',
+    status: { draft: 'Draft', submitted: 'Waiting approval', approved: 'Approved', rejected: 'Rejected', paid: 'Paid', cancelled: 'Cancelled' },
+    cat: { materials: 'Materials', fuel: 'Fuel', transport: 'Transport', equipment_rent: 'Equipment rental', subcontract: 'Subcontract', site_supplies: 'Site supplies',
+      meals: 'Meals', accommodation: 'Accommodation', travel: 'Travel', government_fees: 'Government fees', office: 'Office', utilities: 'Utilities',
+      telecom: 'Phone & internet', maintenance: 'Maintenance', general: 'General' },
+  },
   pur: {
     orders: 'Purchase orders', requests: 'Purchase requests', newOrder: 'New purchase order', newRequest: 'New purchase request',
     order: 'Purchase order', supplier: 'Supplier', newSupplier: '+ New supplier (type the name)', supplierName: 'Supplier name',
@@ -147,7 +158,7 @@ const ar: typeof en = {
   nav: {
     dashboard: 'لوحة القيادة', pipeline: 'مسار المبيعات', leads: 'العملاء المحتملون', customers: 'العملاء', suppliers: 'الموردون',
     tenders: 'المناقصات', quotations: 'عروض الأسعار', templates: 'القوالب', projects: 'العقود والمشاريع',
-    admin: 'الإعدادات', audit: 'سجل التدقيق', more: 'المزيد', purchases: 'المشتريات', sales: 'المبيعات', estimating: 'التسعير', delivery: 'التنفيذ', system: 'النظام', finance: 'المالية', invoices: 'الفواتير',
+    admin: 'الإعدادات', audit: 'سجل التدقيق', more: 'المزيد', purchases: 'المشتريات', expenses: 'المصروفات', sales: 'المبيعات', estimating: 'التسعير', delivery: 'التنفيذ', system: 'النظام', finance: 'المالية', invoices: 'الفواتير',
   },
   common: {
     save: 'حفظ', cancel: 'إلغاء', create: 'إنشاء', edit: 'تعديل', delete: 'حذف', add: 'إضافة', search: 'بحث…',
@@ -236,6 +247,17 @@ const ar: typeof en = {
     title: 'المناقصات وطلبات التسعير', new: 'تسجيل مناقصة', clientRef: 'مرجع العميل', issueDate: 'تاريخ الإصدار', deadline: 'آخر موعد للتقديم',
     clarification: 'آخر موعد للاستفسارات', siteVisit: 'زيارة الموقع', bidBond: 'ضمان ابتدائي مطلوب', bidBondAmount: 'قيمة الضمان الابتدائي',
     upcoming: 'القادمة فقط', opportunity: 'الفرصة',
+  },
+  exp: {
+    new: 'مصروف جديد', description: 'الغرض من المصروف', descriptionHint: 'مثال: ديزل لمولد الموقع', amount: 'المبلغ قبل الضريبة', vat: 'ضريبة القيمة المضافة',
+    vatHint: 'يحسب 15% من المبلغ؛ طابقه مع الإيصال', total: 'الإجمالي', paidTo: 'المدفوع له', paidToHint: 'اسم المحل أو المورد',
+    category: 'التصنيف', project: 'المشروع', paidBy: 'دفع بواسطة', byCompany: 'الشركة (تحويل، بطاقة أو عهدة)', byEmployee: 'موظف (يُعاد له المبلغ)',
+    invoiceNo: 'رقم الإيصال / الفاتورة', supplierVat: 'الرقم الضريبي للمورد', addReceipt: 'صوّر الإيصال أو اختر ملفاً', noReceipt: 'بدون إيصال',
+    thisMonth: 'المعتمد هذا الشهر', vatThisMonth: 'الضريبة المدفوعة هذا الشهر', waiting: 'بانتظار الاعتماد', owedToStaff: 'مستحق للموظفين', markPaid: 'تم الدفع',
+    status: { draft: 'مسودة', submitted: 'بانتظار الاعتماد', approved: 'معتمد', rejected: 'مرفوض', paid: 'مدفوع', cancelled: 'ملغى' },
+    cat: { materials: 'مواد', fuel: 'وقود', transport: 'نقل', equipment_rent: 'استئجار معدات', subcontract: 'مقاول باطن', site_supplies: 'مستلزمات الموقع',
+      meals: 'وجبات', accommodation: 'سكن', travel: 'سفر', government_fees: 'رسوم حكومية', office: 'مكتب', utilities: 'خدمات',
+      telecom: 'هاتف وإنترنت', maintenance: 'صيانة', general: 'عام' },
   },
   pur: {
     orders: 'أوامر الشراء', requests: 'طلبات الشراء', newOrder: 'أمر شراء جديد', newRequest: 'طلب شراء جديد',

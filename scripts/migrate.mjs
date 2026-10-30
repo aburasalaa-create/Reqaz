@@ -26,6 +26,7 @@ const MARKERS = {
   '20261030000009': `select to_regclass('public.purchase_requests') is not null`,
   '20261030000010': `select exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'company_settings' and column_name = 'open_access')`,
   '20261030000011': `select exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'quotation_lines' and column_name = 'manual_rate')`,
+  '20261030000012': `select to_regclass('public.expenses') is not null`,
 };
 
 if (!process.env.DATABASE_URL) { console.error('DATABASE_URL is not set'); process.exit(1); }

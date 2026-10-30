@@ -72,6 +72,24 @@ test('open access: a site engineer quotes and buys on their own', async ({ brows
   await expect(site.getByText(/PO-\d{4}-\d{5}/).first()).toBeVisible();
   await expect(site.getByText('Issued').first()).toBeVisible();
 
+  // Expense with a receipt photo, approved and paid.
+  await site.getByRole('link', { name: 'Expenses' }).click();
+  await site.getByRole('button', { name: 'New expense' }).click();
+  await site.getByTestId('receipt-input').setInputFiles({ name: 'receipt.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64') });
+  await site.locator('.fixed input[name=description]').fill(`Diesel ${stamp}`);
+  await site.locator('.fixed input[name=amount]').fill('400');
+  await site.locator('.fixed').getByRole('button', { name: '15%' }).click();
+  await expect(site.locator('.fixed input[name=vat_amount]')).toHaveValue('60.00');
+  await expect(site.getByTestId('exp-total')).toHaveText('SAR 460.00');
+  await site.locator('.fixed input[name=supplier_name]').fill('Petrol station');
+  await site.locator('.fixed').getByRole('button', { name: 'Save' }).click();
+  await site.waitForURL(/\/expenses\/[0-9a-f-]{36}/);
+  await expect(site.getByText('receipt.png')).toBeVisible();
+  await site.getByTestId('approve-expense').click();
+  await expect(site.getByText('Approved').first()).toBeVisible();
+  await site.getByTestId('pay-expense').click();
+  await expect(site.getByText('Paid').first()).toBeVisible();
+
   // Admin areas stay closed.
   await expect(site.getByRole('link', { name: 'Settings' })).toHaveCount(0);
 });

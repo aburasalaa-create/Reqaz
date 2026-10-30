@@ -5,10 +5,10 @@ import { HttpError, notFound } from '../errors.js';
 import { newStorageKey, sha256, type Storage } from '../storage.js';
 import { idParam, tx } from './util.js';
 
-const ENTITY_TYPES = ['customer', 'opportunity', 'tender', 'quotation', 'quotation_revision', 'contract', 'project'] as const;
+const ENTITY_TYPES = ['customer', 'opportunity', 'tender', 'quotation', 'quotation_revision', 'contract', 'project', 'expense'] as const;
 const ENTITY_TABLE: Record<(typeof ENTITY_TYPES)[number], string> = {
   customer: 'customers', opportunity: 'opportunities', tender: 'tenders', quotation: 'quotations',
-  quotation_revision: 'quotation_revisions', contract: 'contracts', project: 'projects',
+  quotation_revision: 'quotation_revisions', contract: 'contracts', project: 'projects', expense: 'expenses',
 };
 // Office documents, PDFs, images, drawings and archives commonly exchanged in tenders.
 const ALLOWED = /^(application\/(pdf|zip|x-zip-compressed|msword|vnd\.openxmlformats-officedocument\..+|vnd\.ms-excel|vnd\.ms-powerpoint|acad|x-autocad|dxf|octet-stream)|image\/(png|jpeg|webp|gif|tiff)|text\/(plain|csv))$/;
