@@ -194,6 +194,36 @@ test('CRM to quotation to contract through the UI', async ({ browser }) => {
   await expect(gm.locator('html')).toHaveAttribute('dir', 'ltr');
 });
 
+test('a quotation can be started from the Quotations page', async ({ browser }) => {
+  const stamp = Date.now().toString().slice(-6);
+  const est = await loginAs(browser, 'sales@reqaz.test');
+  await est.getByRole('link', { name: 'Quotations' }).click();
+  await est.getByRole('button', { name: 'New quotation' }).click();
+  await est.locator('.fixed select[name=customer_id]').selectOption({ label: 'Al Noor Real Estate Development — شركة النور للتطوير العقاري' });
+  await expect(est.locator('select[name=opportunity_id]')).toHaveValue('new');
+  await est.locator('input[name=quote_title]').fill(`Villa extension ${stamp}`);
+  await est.getByRole('button', { name: 'Create' }).click();
+  await est.waitForURL(/\/quotations\/[0-9a-f-]{36}/);
+  await expect(est.getByText(/QTN-\d{4}-\d{4}/).first()).toBeVisible();
+  // A new opportunity for the customer was opened alongside it.
+  const qid = est.url().split('/quotations/')[1].split('?')[0];
+  const quote = await apiAs(est, `/quotations/${qid}`);
+  expect(quote.customer_name).toBe('Al Noor Real Estate Development');
+  expect(quote.opportunity_title).toBe(`Villa extension ${stamp}`);
+
+  // An estimator cannot open opportunities, so the dialog offers the customer's open ones instead.
+  const est2 = await loginAs(browser, 'estimator@reqaz.test');
+  await est2.getByRole('link', { name: 'Quotations' }).click();
+  await est2.getByRole('button', { name: 'New quotation' }).click();
+  await est2.locator('.fixed select[name=customer_id]').selectOption({ label: 'Al Noor Real Estate Development — شركة النور للتطوير العقاري' });
+  await expect(est2.locator('select[name=opportunity_id] option', { hasText: 'New opportunity' })).toHaveCount(0);
+  await est2.locator('select[name=opportunity_id]').selectOption({ label: `${quote.opportunity_number} — Villa extension ${stamp}` });
+  await est2.locator('input[name=quote_title]').fill(`Villa extension option B ${stamp}`);
+  await est2.getByRole('button', { name: 'Create' }).click();
+  await est2.waitForURL(/\/quotations\/[0-9a-f-]{36}/);
+  await expect(est2.getByText(`Villa extension option B ${stamp}`).first()).toBeVisible();
+});
+
 test('site engineers cannot reach sales screens', async ({ browser }) => {
   const site = await loginAs(browser, 'site@reqaz.test');
   await expect(site.getByRole('link', { name: 'Customers' })).toHaveCount(0);
