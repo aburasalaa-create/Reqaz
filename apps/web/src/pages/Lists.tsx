@@ -238,12 +238,12 @@ export function Projects() {
   const projects = useQuery({ queryKey: ['projects'], queryFn: () => api.get('/projects') });
   return (
     <div className="space-y-4">
-      <PageHeader title={t('nav.projects')} subtitle={t('project.phase2')} />
+      <PageHeader title={t('nav.projects')} />
       <Card title={t('project.projects')} bodyClass="p-0">
         {projects.isLoading ? <Spinner /> : !projects.data?.length ? <Empty /> : (
           <Table head={[t('common.number'), t('common.name'), t('common.customer'), t('project.pm'), t('project.start'), t('project.target'), t('project.budget'), t('common.status')]}>
             {projects.data.map((p: any) => (
-              <tr key={p.id}><td className="td font-mono text-xs">{p.number}</td><td className="td">{p.name}</td><td className="td">{p.customer_name}</td><td className="td">{p.project_manager_name}</td>
+              <tr key={p.id}><td className="td font-mono text-xs"><Link className="link" to={`/projects/${p.id}`}>{p.number}</Link></td><td className="td">{p.name}</td><td className="td">{p.customer_name}</td><td className="td">{p.project_manager_name}</td>
                 <td className="td">{date(p.start_date)}</td><td className="td">{date(p.target_completion_date)}</td><td className="td num">{money(p.approved_budget)}</td><td className="td"><Badge tone="blue">{p.status}</Badge></td></tr>
             ))}
           </Table>

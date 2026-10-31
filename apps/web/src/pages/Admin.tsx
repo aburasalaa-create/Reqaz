@@ -32,7 +32,7 @@ export default function Admin() {
       address_en: settings.address_en ?? '', address_ar: settings.address_ar ?? '', phone: settings.phone ?? '', email: settings.email ?? '', website: settings.website ?? '',
       ...Object.fromEntries(['unified_number','building_number','street','district','city','postal_code','additional_number','invoice_terms_en','invoice_terms_ar'].map((k) => [k, settings[k] ?? ''])),
       bank_accounts: (settings.bank_accounts ?? []).filter((b: any) => b.bank_name || b.iban),
-      quotation_validity_days: Number(settings.quotation_validity_days), allow_self_approval: !!settings.allow_self_approval, open_access: !!settings.open_access,
+      quotation_validity_days: Number(settings.quotation_validity_days), allow_self_approval: !!settings.allow_self_approval, open_access: !!settings.open_access, segregation_of_duties: !!settings.segregation_of_duties,
     }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['lookups'] }); toast(t('common.saved')); void reloadMe(); }, onError: onErr,
   });
@@ -88,8 +88,10 @@ export default function Admin() {
           <StampSetting />
           <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={!!settings.open_access} onChange={(e) => setSettings({ ...settings, open_access: e.target.checked })} />{t('admin.openAccess')}</label>
           <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={!!settings.allow_self_approval} onChange={(e) => setSettings({ ...settings, allow_self_approval: e.target.checked })} />{t('admin.selfApproval')}</label>
+          <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="segregation_of_duties" checked={!!settings.segregation_of_duties} onChange={(e) => setSettings({ ...settings, segregation_of_duties: e.target.checked })} />{t('fin.segregation')}</label>
         </div>
       </Card>}
+      <ApprovalLevels roles={roles.data} />
       <Modal open={!!editRoles} onClose={() => setEditRoles(null)} title={`${t('admin.roles')} — ${editRoles?.name ?? ''}`}
         footer={<><Button variant="secondary" onClick={() => setEditRoles(null)}>{t('common.cancel')}</Button><Button busy={saveRoles.isPending} onClick={() => saveRoles.mutate()}>{t('common.save')}</Button></>}>
         {editRoles && <div className="grid gap-2">{roles.data.map((r: any) => (
@@ -110,5 +112,51 @@ export default function Admin() {
         </div>}
       </Modal>
     </div>
+  );
+}
+
+const DOC_TYPES = ['purchase_order', 'purchase_request', 'customer_po', 'budget_change', 'variation', 'supplier_invoice'] as const;
+
+/** Value-based approval levels per document type. No levels means one approval by anyone with the approve permission. */
+function ApprovalLevels({ roles }: { roles: any[] }) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ['approval-levels'], queryFn: () => api.get('/approval-levels') });
+  const [edit, setEdit] = useState<{ doc: string; levels: { min_amount: string; role_id: string }[] } | null>(null);
+  const save = useMutation({
+    mutationFn: () => api.put(`/approval-levels/${edit!.doc}`, edit!.levels.filter((l) => l.min_amount !== '').map((l) => ({ min_amount: l.min_amount, role_id: l.role_id || null }))),
+    onSuccess: () => { setEdit(null); qc.invalidateQueries({ queryKey: ['approval-levels'] }); toast(t('common.saved')); },
+    onError: (e: Error) => toast(e.message, 'error'),
+  });
+  return (
+    <Card title={t('fin.approvalLevels')} bodyClass="p-0">
+      <p className="px-4 pt-3 text-xs text-slate-500">{t('fin.approvalLevelsHint')}</p>
+      <table className="w-full text-sm"><tbody className="divide-y">
+        {DOC_TYPES.map((d) => {
+          const lv = (data ?? []).filter((l: any) => l.doc_type === d);
+          return (
+            <tr key={d}><td className="td font-medium">{t(`fin.doc.${d}`)}</td>
+              <td className="td text-xs">{lv.length ? lv.map((l: any) => `${t('fin.level')} ${l.level}: ${l.role_name ?? t('fin.anyApprover')} ${t('fin.from')} ${Number(l.min_amount).toLocaleString('en-US')}`).join(' · ') : t('fin.oneApproval')}</td>
+              <td className="td text-end"><Button variant="ghost" data-testid={`levels-${d}`} onClick={() => setEdit({ doc: d, levels: lv.map((l: any) => ({ min_amount: String(Number(l.min_amount)), role_id: l.role_id ?? '' })) })}>{t('common.edit')}</Button></td></tr>
+          );
+        })}
+      </tbody></table>
+      <Modal open={!!edit} onClose={() => setEdit(null)} title={edit ? t(`fin.doc.${edit.doc}`) : ''}
+        footer={<Button busy={save.isPending} onClick={() => save.mutate()} data-testid="levels-save">{t('common.save')}</Button>}>
+        {edit && <div className="grid gap-2">
+          {edit.levels.map((l, i) => (
+            <div key={i} className="grid grid-cols-[1fr_1.4fr_auto] items-end gap-2">
+              <Field label={t('fin.fromAmount')}><Input name={`level_amount_${i}`} type="number" value={l.min_amount} onChange={(e) => setEdit({ ...edit, levels: edit.levels.map((x, j) => (j === i ? { ...x, min_amount: e.target.value } : x)) })} /></Field>
+              <Field label={t('fin.approverRole')}><select className="input" name={`level_role_${i}`} value={l.role_id} onChange={(e) => setEdit({ ...edit, levels: edit.levels.map((x, j) => (j === i ? { ...x, role_id: e.target.value } : x)) })}>
+                <option value="">{t('fin.anyApprover')}</option>{roles.map((r: any) => <option key={r.id} value={r.id}>{pick(r.name_en, r.name_ar)}</option>)}</select></Field>
+              <Button variant="ghost" onClick={() => setEdit({ ...edit, levels: edit.levels.filter((_, j) => j !== i) })}>{t('common.delete')}</Button>
+            </div>
+          ))}
+          <Button variant="secondary" onClick={() => setEdit({ ...edit, levels: [...edit.levels, { min_amount: edit.levels.length ? '' : '0', role_id: '' }] })} data-testid="levels-add"><Plus className="h-4 w-4" />{t('fin.addLevel')}</Button>
+          <p className="text-xs text-slate-500">{t('fin.levelsHint')}</p>
+        </div>}
+      </Modal>
+    </Card>
   );
 }

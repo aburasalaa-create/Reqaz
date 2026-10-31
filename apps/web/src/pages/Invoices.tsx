@@ -145,7 +145,9 @@ export function InvoiceDetail() {
       <PageHeader
         title={<span className="flex items-center gap-2"><KindLabel inv={inv} /> {inv.number && <span className="font-mono">{inv.number}</span>}
           <Badge tone={STATUS_TONES[inv.status]}>{t(`inv.status.${inv.status}`)}</Badge></span>}
-        subtitle={<>{pick(inv.customer_name, inv.customer_name_ar)}{inv.original_number && <> · {t('inv.against')} <Link className="link" to={`/invoices/${inv.original_invoice_id}`}>{inv.original_number}</Link></>}</>}
+        subtitle={<>{pick(inv.customer_name, inv.customer_name_ar)}{inv.original_number && <> · {t('inv.against')} <Link className="link" to={`/invoices/${inv.original_invoice_id}`}>{inv.original_number}</Link></>}
+          {inv.billing_type && inv.billing_type !== 'standard' && <> · {t(`fin.billing.${inv.billing_type}`)}{inv.claim_no && ` #${inv.claim_no}`}</>}
+          {inv.customer_po_id && <> · <Link className="link" to={`/customer-pos/${inv.customer_po_id}`}>{inv.customer_po_record ?? inv.customer_po_number}</Link></>}</>}
         actions={<>
           <div className="inline-flex overflow-hidden rounded-md border">
             <button className="inline-flex items-center gap-1 bg-white px-2.5 py-1.5 text-sm hover:bg-slate-50" onClick={() => pdf('bilingual')}><FileDown className="h-4 w-4" />PDF</button>
@@ -175,7 +177,8 @@ export function InvoiceDetail() {
             {(inv.kind === 'credit_note' || inv.kind === 'debit_note') && <Field label={t('inv.reason')}>{field('note_reason')}</Field>}
             {inv.kind !== 'credit_note' && <>
               <Field label={t('inv.retentionPct')}>{field('retention_pct', 'number')}</Field>
-              <Field label={t('inv.advance')}>{field('advance_deduction', 'number')}</Field></>}
+              <Field label={t('inv.advance')}>{field('advance_deduction', 'number')}</Field>
+              {inv.billing_type !== 'advance' && <Field label={t('fin.advanceRecovery')} hint={`${t('fin.advanceRecoveryHint')} ${t('fin.advanceOpen')}: ${money(inv.advance_open)}`}>{field('advance_recovery', 'number')}</Field>}</>}
             <Field label={t('inv.termsEn')} className="sm:col-span-2"><Textarea disabled={!editable} defaultValue={inv.payment_terms_en ?? ''} key={`te-${inv.updated_at}`}
               onBlur={(e) => e.target.value !== (inv.payment_terms_en ?? '') && patch.mutate({ payment_terms_en: e.target.value })} /></Field>
             <Field label={t('inv.termsAr')} className="sm:col-span-2"><Textarea dir="rtl" disabled={!editable} defaultValue={inv.payment_terms_ar ?? ''} key={`ta-${inv.updated_at}`}
@@ -184,7 +187,7 @@ export function InvoiceDetail() {
         </Card>
         <Card title={t('inv.totals')}>
           <dl className="space-y-1.5 text-sm">
-            {[['inv.subtotal', inv.subtotal], ['inv.discount', inv.discount_total], ['inv.taxable', inv.taxable_amount], ['inv.vat', inv.vat_total]].map(([k, v]) =>
+            {[['inv.subtotal', inv.subtotal], ['inv.discount', inv.discount_total], ...(Number(inv.advance_recovery) > 0 ? [['fin.advanceRecovered', `-${inv.advance_recovery}`]] : []), ['inv.taxable', inv.taxable_amount], ['inv.vat', inv.vat_total]].map(([k, v]) =>
               <div key={k} className="flex justify-between"><dt className="text-slate-500">{t(k)}</dt><dd className="num">{money(v)}</dd></div>)}
             <div className="flex justify-between border-t pt-1.5 font-semibold"><dt>{t('inv.total')}</dt><dd className="num" data-testid="total">{money(inv.total_amount, inv.currency)}</dd></div>
             {Number(inv.retention_amount) > 0 && <div className="flex justify-between"><dt className="text-slate-500">{t('inv.retention')}</dt><dd className="num">({money(inv.retention_amount)})</dd></div>}
@@ -216,7 +219,11 @@ export function InvoiceDetail() {
 
       {inv.status === 'issued' && ['invoice', 'debit_note'].includes(inv.kind) && (
         <Card title={t('inv.payments')} bodyClass="p-0" actions={can('payments.write') && balance > 0 &&
-          <Button onClick={() => setPay({ payment_date: new Date().toISOString().slice(0, 10), amount: balance.toFixed(2), method: 'bank_transfer', reference: '' })}><Plus className="h-4 w-4" />{t('inv.recordPayment')}</Button>}>
+          <Button onClick={() => setPay({ kind: 'invoice', payment_date: new Date().toISOString().slice(0, 10), amount: balance.toFixed(2), method: 'bank_transfer', reference: '', bank_account_code: '1010' })} data-testid="record-payment"><Plus className="h-4 w-4" />{t('inv.recordPayment')}</Button>}>
+          {Number(inv.retention_amount) > Number(inv.retention_received ?? 0) && can('payments.write') && <div className="border-b px-4 py-2 text-sm">
+            {t('fin.retentionHeld')}: {money(Number(inv.retention_amount) - Number(inv.retention_received ?? 0))}
+            <Button variant="secondary" className="ms-2" onClick={() => setPay({ kind: 'retention', payment_date: new Date().toISOString().slice(0, 10), amount: (Number(inv.retention_amount) - Number(inv.retention_received ?? 0)).toFixed(2), method: 'bank_transfer', reference: '', bank_account_code: '1010' })}>{t('fin.receiveRetention')}</Button>
+          </div>}
           {!inv.payments.length ? <Empty /> : <table className="w-full"><tbody className="divide-y">{inv.payments.map((p: any) => (
             <tr key={p.id} className={p.voided_at ? 'text-slate-400 line-through' : ''}>
               <td className="td font-mono text-xs">{p.number}</td><td className="td">{date(p.payment_date)}</td><td className="td">{t(`inv.method.${p.method}`)}</td>
@@ -254,6 +261,9 @@ export function InvoiceDetail() {
           <Field label={t('inv.methodLabel')}><Select value={pay.method} onChange={(e) => setPay({ ...pay, method: e.target.value })}>
             {['bank_transfer', 'cheque', 'cash', 'card', 'other'].map((m) => <option key={m} value={m}>{t(`inv.method.${m}`)}</option>)}</Select></Field>
           <Field label={t('inv.reference')}><Input value={pay.reference} onChange={(e) => setPay({ ...pay, reference: e.target.value })} /></Field>
+          <Field label={t('fin.paidInto')}><Select value={pay.bank_account_code} onChange={(e) => setPay({ ...pay, bank_account_code: e.target.value })}>
+            {(vat.data?.bank_accounts ?? []).map((b: any) => <option key={b.code} value={b.code}>{b.code} · {pick(b.name_en, b.name_ar)}</option>)}</Select></Field>
+          {pay.kind === 'retention' && <p className="text-xs text-slate-500 sm:col-span-2">{t('fin.retentionReceiptHint')}</p>}
         </div>}
       </Modal>
 

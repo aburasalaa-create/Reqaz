@@ -47,6 +47,7 @@ export interface Me {
   permissions: string[];
   open_access?: boolean;
   allow_self_approval?: boolean;
+  segregation_of_duties?: boolean;
   files_enabled?: boolean;
   roles: { code: string; name_en: string; name_ar: string }[];
 }

@@ -68,6 +68,10 @@ test('open access: a site engineer quotes and buys on their own', async ({ brows
   await site.locator('.fixed').getByRole('button', { name: 'Create' }).click();
   await site.waitForURL(/\/purchases\/orders\//);
   await expect(site.getByTestId('po-total')).toContainText('6,210.00'); // 5,400 + 15% VAT
+  // Supplier orders are approved before they are issued; with self-approval on, the buyer can approve their own.
+  await site.getByTestId('submit-po').click();
+  await site.getByTestId('approve-po').click();
+  await site.getByTestId('reason-confirm').click();
   await site.getByTestId('issue-po').click();
   await expect(site.getByText(/PO-\d{4}-\d{5}/).first()).toBeVisible();
   await expect(site.getByText('Issued').first()).toBeVisible();

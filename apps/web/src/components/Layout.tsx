@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BarChart3, Briefcase, Building2, ClipboardList, FileText, Inbox, Receipt, KanbanSquare, LayoutTemplate, LogOut, Settings, ShieldCheck, ShoppingCart, Truck, Wallet } from 'lucide-react';
+import { BarChart3, BookOpen, Briefcase, Building2, ClipboardList, FileInput, FileText, Inbox, Receipt, KanbanSquare, LayoutTemplate, LogOut, PackageCheck, Settings, ShieldCheck, ShoppingCart, Truck, Wallet } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { pick } from '../lib/format';
 import { cx } from './ui';
@@ -19,12 +19,16 @@ export default function Layout() {
     { to: '/projects', icon: Briefcase, label: t('nav.projects'), perm: ['contracts.read', 'projects.read', 'quotations.award'] },
     { to: '/invoices', icon: Receipt, label: t('nav.invoices'), perm: 'invoices.read' },
     { to: '/expenses', icon: Wallet, label: t('nav.expenses'), perm: ['expenses.read', 'expenses.write'] },
+    { to: '/po-center', icon: PackageCheck, label: t('fin.poCenter'), perm: ['customer_pos.read', 'procurement.read'] },
     { to: '/purchases', icon: ShoppingCart, label: t('nav.purchases'), perm: 'procurement.read' },
     { to: '/admin', icon: Settings, label: t('nav.admin'), perm: 'users.manage' },
   ];
   const more = [
     { to: '/leads', icon: Inbox, label: t('nav.leads'), perm: 'crm.read' },
     { to: '/tenders', icon: ClipboardList, label: t('nav.tenders'), perm: 'tenders.read' },
+    { to: '/customer-pos', icon: FileInput, label: t('fin.customerPos'), perm: 'customer_pos.read' },
+    { to: '/supplier-invoices', icon: Receipt, label: t('fin.supplierInvoices'), perm: ['procurement.read', 'invoices.read'] },
+    { to: '/accounting', icon: BookOpen, label: t('fin.accounting'), perm: 'accounting.read' },
     { to: '/suppliers', icon: Truck, label: t('nav.suppliers'), perm: 'suppliers.read' },
     { to: '/templates', icon: LayoutTemplate, label: t('nav.templates'), perm: 'estimation.read' },
     { to: '/audit', icon: ShieldCheck, label: t('nav.audit'), perm: 'audit.read' },

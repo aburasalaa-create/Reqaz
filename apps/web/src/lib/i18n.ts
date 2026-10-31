@@ -1,5 +1,6 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { finAr, finEn } from './i18n-fin';
 
 const en = {
   app: { name: 'Reqaz Management System', short: 'RMS' },
@@ -116,7 +117,7 @@ const en = {
     paymentTerms: 'Payment terms', deliverTo: 'Deliver to', terms: 'Terms', submit: 'Send for approval', makeOrder: 'Create purchase order',
     decidedBy: 'decided by', estTotal: 'Estimated total', comment: 'Comment',
     status: { draft: 'Draft', submitted: 'Waiting approval', approved: 'Approved', rejected: 'Rejected', ordered: 'Ordered', cancelled: 'Cancelled',
-      issued: 'Issued', received: 'Received', closed: 'Closed' },
+      issued: 'Issued', received: 'Received', closed: 'Closed', pending_approval: 'Waiting approval', partially_received: 'Partly received', superseded: 'Replaced by amendment' },
   },
   quote: {
     title: 'Quotations', new: 'New quotation', rateHint: 'Type the rate, or leave empty to price from the costing', opportunity: 'Opportunity', newOpportunity: 'New opportunity (named after this quotation)', pickCustomer: 'Choose a customer first.', needTitle: 'Enter a title for the quotation.', noOpportunity: 'This customer has no open opportunity. Ask sales to open one.', revision: 'Revision', revisions: 'Revisions', newRevision: 'New revision',
@@ -268,7 +269,7 @@ const ar: typeof en = {
     paymentTerms: 'شروط الدفع', deliverTo: 'التسليم إلى', terms: 'الشروط', submit: 'إرسال للاعتماد', makeOrder: 'إنشاء أمر شراء',
     decidedBy: 'قرار', estTotal: 'الإجمالي التقديري', comment: 'تعليق',
     status: { draft: 'مسودة', submitted: 'بانتظار الاعتماد', approved: 'معتمد', rejected: 'مرفوض', ordered: 'تم الطلب', cancelled: 'ملغى',
-      issued: 'صادر', received: 'مستلم', closed: 'مغلق' },
+      issued: 'صادر', received: 'مستلم', closed: 'مغلق', pending_approval: 'بانتظار الاعتماد', partially_received: 'مستلم جزئياً', superseded: 'استُبدل بتعديل' },
   },
   quote: {
     title: 'عروض الأسعار', new: 'عرض سعر جديد', rateHint: 'اكتب سعر الوحدة، أو اتركه فارغاً ليُحسب من التكاليف', opportunity: 'الفرصة', newOpportunity: 'فرصة جديدة (باسم عرض السعر)', pickCustomer: 'اختر العميل أولاً.', needTitle: 'أدخل عنوان عرض السعر.', noOpportunity: 'لا توجد فرصة مفتوحة لهذا العميل. اطلب من فريق المبيعات فتح فرصة.', revision: 'المراجعة', revisions: 'المراجعات', newRevision: 'مراجعة جديدة',
@@ -308,7 +309,7 @@ const ar: typeof en = {
 const saved = (() => { try { return localStorage.getItem('rms.lang'); } catch { return null; } })();
 
 void i18n.use(initReactI18next).init({
-  resources: { en: { translation: en }, ar: { translation: ar } },
+  resources: { en: { translation: { ...en, fin: finEn } }, ar: { translation: { ...ar, fin: finAr } } },
   lng: saved === 'ar' ? 'ar' : 'en',
   fallbackLng: 'en',
   interpolation: { escapeValue: false },

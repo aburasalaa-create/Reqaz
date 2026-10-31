@@ -17,6 +17,11 @@ import { InvoiceDetail, Invoices } from './pages/Invoices';
 import { Audit, Leads, Projects, Quotations, Suppliers, TenderDetail, Tenders } from './pages/Lists';
 import { ExpenseDetail, Expenses } from './pages/Expenses';
 import { PurchaseOrderDetail, PurchaseRequestDetail, Purchases } from './pages/Purchases';
+import { CustomerPoDetail, CustomerPos } from './pages/CustomerPos';
+import { SupplierInvoiceDetail, SupplierInvoices } from './pages/SupplierInvoices';
+import ProjectDetail from './pages/ProjectDetail';
+import Accounting from './pages/Accounting';
+import PoCenter from './pages/PoCenter';
 
 function Guard({ perm, children }: { perm: string | string[]; children: React.ReactNode }) {
   const { can } = useAuth();
@@ -51,6 +56,13 @@ export default function App() {
         <Route path="purchases" element={<Guard perm="procurement.read"><Purchases /></Guard>} />
         <Route path="purchases/orders/:id" element={<Guard perm="procurement.read"><PurchaseOrderDetail /></Guard>} />
         <Route path="purchases/requests/:id" element={<Guard perm="procurement.read"><PurchaseRequestDetail /></Guard>} />
+        <Route path="po-center" element={<Guard perm={['customer_pos.read', 'procurement.read']}><PoCenter /></Guard>} />
+        <Route path="customer-pos" element={<Guard perm="customer_pos.read"><CustomerPos /></Guard>} />
+        <Route path="customer-pos/:id" element={<Guard perm="customer_pos.read"><CustomerPoDetail /></Guard>} />
+        <Route path="supplier-invoices" element={<Guard perm={['procurement.read', 'invoices.read']}><SupplierInvoices /></Guard>} />
+        <Route path="supplier-invoices/:id" element={<Guard perm={['procurement.read', 'invoices.read']}><SupplierInvoiceDetail /></Guard>} />
+        <Route path="projects/:id" element={<Guard perm="projects.read"><ProjectDetail /></Guard>} />
+        <Route path="accounting" element={<Guard perm="accounting.read"><Accounting /></Guard>} />
         <Route path="suppliers" element={<Guard perm="suppliers.read"><Suppliers /></Guard>} />
         <Route path="tenders" element={<Guard perm="tenders.read"><Tenders /></Guard>} />
         <Route path="tenders/:id" element={<Guard perm="tenders.read"><TenderDetail /></Guard>} />
