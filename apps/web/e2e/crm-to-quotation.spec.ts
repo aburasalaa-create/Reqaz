@@ -80,9 +80,10 @@ test('CRM to quotation to contract through the UI', async ({ browser }) => {
   await expect(est.getByText(/QTN-\d{4}-\d{4}/).first()).toBeVisible();
   await est.getByLabel('Insert BOQ template').selectOption({ index: 1 });
   await expect(est.locator('[data-testid^=line-][data-testid$=-total]')).toHaveCount(7);
-  await est.getByTestId('add-line').click();
+  await est.getByTestId('new-description').fill('Gypsum ceiling with access panels');
+  await est.getByTestId('new-add').click();
   await expect(est.locator('[data-testid^=line-][data-testid$=-total]')).toHaveCount(8);
-  await est.getByTestId('line-7-description_en').fill('Gypsum ceiling with access panels');
+  await est.getByTestId('show-arabic').check();
   await est.getByTestId('line-7-description_ar').fill('أسقف جبسية مع فتحات صيانة');
   await est.getByTestId('line-7-unit').fill('m2');
   await est.getByTestId('line-7-quantity').fill('420');
@@ -104,6 +105,7 @@ test('CRM to quotation to contract through the UI', async ({ browser }) => {
   await expect(est.getByTestId('vat')).toHaveText(fmt(rev.vat_amount));
 
   // Proposal content in Reqaz's format; milestones must reach 100% before approval.
+  if (!(await est.locator('input[name=reference_prefix]').isVisible())) await est.getByTestId('proposal-more').click();
   await est.locator('input[name=reference_prefix]').fill(`SHR/RUH-${stamp}-`);
   await est.locator('input[name=project_name]').fill('Showroom fit-out, ground floor');
   await est.locator('select[name=price_display]').selectOption('lump_sum_sections');
@@ -171,8 +173,7 @@ test('CRM to quotation to contract through the UI', async ({ browser }) => {
   await gm.reload();
   await gm.getByRole('button', { name: /Award/ }).click();
   await gm.locator('select[name=project_manager_id]').selectOption({ label: 'Faisal Project Manager' });
-  await gm.locator('input[name=start_date]').fill('2027-01-03');
-  await gm.locator('input[name=target_completion_date]').fill('2027-06-30');
+  // Dates are optional: the project starts today with a 90-day target unless they are entered.
   await gm.locator('.fixed').getByRole('button', { name: 'Confirm' }).click();
   await expect(gm.getByText(/CON-\d{4}-\d{3}/)).toBeVisible();
   await expect(gm.getByText('Won').first()).toBeVisible();

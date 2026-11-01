@@ -1,6 +1,6 @@
 // Client-facing proposal content for a revision, in the layout of Reqaz's own proposals:
 // cover details, cover letter, executive summary, scope, schedule, terms, payment milestones and compliance matrix.
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Trash2 } from 'lucide-react';
 import { money } from '../lib/format';
@@ -76,45 +76,66 @@ export default function ProposalEditor({ terms, setTerms, editable, contacts, us
   const msTotal = milestones.reduce((a, m) => a + (Number(m.percent) || 0), 0);
   const msOk = milestones.length === 0 || Math.abs(msTotal - 100) < 0.001;
 
+  // Anything beyond the essentials stays folded away until it is needed (it opens by itself when it already has content).
+  const extraUsed = !!(terms.reference_prefix || terms.project_name || terms.project_location || terms.client_rfp_reference || terms.cc || terms.signatory_id
+    || (terms.price_display && terms.price_display !== 'itemised') || (terms.schedule ?? []).length || milestones.length || (terms.compliance ?? []).length
+    || ['cover_letter', 'executive_summary', 'general_terms', 'warranty'].some((k) => terms[`${k}_en`] || terms[`${k}_ar`])
+    || ['scope', 'exclusions', 'completion_period', 'payment_terms'].some((k) => terms[`${k}_ar`]));
+  const [moreOpen, setMoreOpen] = useState<boolean | null>(null);
+  const one = (k: string, label: string, rows = 3, hint?: string) => (
+    <Field label={label} hint={hint}><Textarea rows={rows} dir="auto" name={k} value={terms[k] ?? ''} onChange={(e) => set(k, e.target.value)} /></Field>
+  );
+
   return (
     <fieldset disabled={!editable} className="grid gap-3 sm:grid-cols-2">
-      {heading(t('proposal.cover'))}
       {text('subject', t('proposal.title'))}
+      <div className="grid grid-cols-2 gap-3">
+        <Field label={t('quote.validUntil')}><Input type="date" name="valid_until" value={terms.valid_until ?? ''} onChange={(e) => set('valid_until', e.target.value)} /></Field>
+        <Field label={t('quote.attention')}><Select name="attention_contact_id" value={terms.attention_contact_id ?? ''} onChange={(e) => set('attention_contact_id', e.target.value)}>
+          <option value="">—</option>{contacts.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}</Select></Field>
+      </div>
+      {one('scope_en', t('proposal.scopeList'), 4)}
+      {one('exclusions_en', t('quote.exclusions'), 4)}
+      {one('payment_terms_en', t('quote.paymentTerms'), 2)}
+      {one('completion_period_en', t('proposal.delivery'), 2)}
+      {one('internal_notes', t('quote.internalNotes'), 2, t('proposal.internalHint'))}
+
+      <details className="group rounded-md border sm:col-span-2" open={moreOpen ?? extraUsed} data-open={String(moreOpen ?? extraUsed)}
+        onToggle={(e) => setMoreOpen((e.currentTarget as HTMLDetailsElement).open)}>
+        <summary className="cursor-pointer select-none px-3 py-2 text-sm font-medium text-brand-700 hover:bg-slate-50" data-testid="proposal-more">{t('proposal.more')}</summary>
+        <div className="grid gap-3 border-t p-3 sm:grid-cols-2">
+      {heading(t('proposal.cover'))}
       {text('project_name', t('proposal.projectName'))}
       {text('project_location', t('proposal.location'))}
       {text('client_rfp_reference', t('proposal.rfpRef'))}
       <Field label={t('proposal.referencePrefix')} hint={t('proposal.referenceHint')}>
         <Input dir="ltr" name="reference_prefix" value={terms.reference_prefix ?? ''} placeholder="ARS/RUH111026-01" onChange={(e) => set('reference_prefix', e.target.value)} />
       </Field>
+      <Field label={t('proposal.priceDisplay')}><Select name="price_display" value={terms.price_display || 'itemised'} onChange={(e) => set('price_display', e.target.value)}>
+        <option value="itemised">{t('proposal.itemised')}</option><option value="lump_sum_sections">{t('proposal.lumpSum')}</option></Select></Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label={t('quote.validUntil')}><Input type="date" name="valid_until" value={terms.valid_until ?? ''} onChange={(e) => set('valid_until', e.target.value)} /></Field>
-        <Field label={t('proposal.priceDisplay')}><Select name="price_display" value={terms.price_display || 'itemised'} onChange={(e) => set('price_display', e.target.value)}>
-          <option value="itemised">{t('proposal.itemised')}</option><option value="lump_sum_sections">{t('proposal.lumpSum')}</option></Select></Field>
+        {text('cc', t('proposal.cc'))}
+        <Field label={t('proposal.signatory')}><Select name="signatory_id" value={terms.signatory_id ?? ''} onChange={(e) => set('signatory_id', e.target.value)}>
+          <option value="">{t('proposal.preparer')}</option>{users.map((u) => <option key={u.id} value={u.id}>{u.full_name}{u.job_title ? ` — ${u.job_title}` : ''}</option>)}</Select></Field>
       </div>
 
       {heading(t('proposal.letter'))}
-      <div className="grid grid-cols-2 gap-3">
-        <Field label={t('quote.attention')}><Select name="attention_contact_id" value={terms.attention_contact_id ?? ''} onChange={(e) => set('attention_contact_id', e.target.value)}>
-          <option value="">—</option>{contacts.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}</Select></Field>
-        {text('cc', t('proposal.cc'))}
-      </div>
-      <Field label={t('proposal.signatory')} hint={t('proposal.signatoryHint')}><Select name="signatory_id" value={terms.signatory_id ?? ''} onChange={(e) => set('signatory_id', e.target.value)}>
-        <option value="">{t('proposal.preparer')}</option>{users.map((u) => <option key={u.id} value={u.id}>{u.full_name}{u.job_title ? ` — ${u.job_title}` : ''}</option>)}</Select></Field>
       {pair('cover_letter', t('proposal.coverLetter'), 6)}
-
-      {heading(t('proposal.summary'))}
       {pair('executive_summary', t('proposal.executiveSummary'))}
-      {pair('scope', t('proposal.scopeList'), 5)}
+      {pair('general_terms', t('proposal.generalTerms'), 4)}
+      {pair('warranty', t('proposal.warranty'), 2)}
+
+      {heading(t('proposal.arabicText'))}
+      {one('scope_ar', `${t('proposal.scopeList')} — ${t('quote.arabic')}`, 3)}
+      {one('exclusions_ar', `${t('quote.exclusions')} — ${t('quote.arabic')}`, 3)}
+      {one('payment_terms_ar', `${t('quote.paymentTerms')} — ${t('quote.arabic')}`, 2)}
+      {one('completion_period_ar', `${t('proposal.delivery')} — ${t('quote.arabic')}`, 2)}
+
       <div className="sm:col-span-2">
         <div className="label">{t('proposal.schedule')}</div>
         <RowsEditor testid="schedule" disabled={!editable} rows={terms.schedule ?? []} onChange={(v) => set('schedule', v)} blank={{ label: '', description: '', duration: '' }}
           cols={[{ key: 'label', label: t('proposal.stage'), width: 'w-36' }, { key: 'description', label: t('proposal.description') }, { key: 'duration', label: t('proposal.duration'), width: 'w-32' }]} />
       </div>
-      {pair('general_terms', t('proposal.generalTerms'), 5)}
-      {pair('exclusions', t('quote.exclusions'))}
-      {pair('completion_period', t('proposal.delivery'), 2)}
-      {pair('warranty', t('proposal.warranty'), 2)}
-      {pair('payment_terms', t('quote.paymentTerms'), 2)}
       <div className="sm:col-span-2">
         <div className="label">{t('proposal.milestones')}</div>
         <RowsEditor testid="milestones" disabled={!editable} rows={milestones} onChange={(v) => set('payment_milestones', v)} blank={{ description: '', percent: '' }}
@@ -124,14 +145,13 @@ export default function ProposalEditor({ terms, setTerms, editable, contacts, us
             <td className={cx('px-3 py-1.5 text-end font-semibold tabular-nums', msOk ? 'text-emerald-700' : 'text-red-600')} data-testid="milestones-total">{msTotal.toLocaleString('en-US', { maximumFractionDigits: 3 })}%</td><td /></tr></tfoot>} />
         {!msOk && <p className="mt-1 text-xs text-red-600">{t('proposal.milestonesMust100')}</p>}
       </div>
-
-      {heading(t('proposal.compliance'))}
       <div className="sm:col-span-2">
+        <div className="label">{t('proposal.compliance')}</div>
         <RowsEditor testid="compliance" disabled={!editable} rows={terms.compliance ?? []} onChange={(v) => set('compliance', v)} blank={{ ref: '', requirement: '', status: 'Comply' }}
           cols={[{ key: 'ref', label: t('proposal.ref'), width: 'w-28' }, { key: 'requirement', label: t('proposal.requirement') }, { key: 'status', label: t('proposal.complianceStatus'), width: 'w-36' }]} />
       </div>
-
-      <Field label={t('quote.internalNotes')} hint={t('proposal.internalHint')} className="sm:col-span-2"><Textarea dir="auto" name="internal_notes" value={terms.internal_notes ?? ''} onChange={(e) => set('internal_notes', e.target.value)} /></Field>
+        </div>
+      </details>
     </fieldset>
   );
 }

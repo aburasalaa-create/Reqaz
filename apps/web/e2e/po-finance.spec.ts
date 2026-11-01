@@ -41,15 +41,11 @@ test('customer PO to project, supplier PO to payment, progress claim to receipt'
   await page.locator('.fixed').getByRole('button', { name: 'Create' }).click();
   await page.waitForURL(/\/quotations\/[0-9a-f-]{36}/);
   const quotationId = page.url().split('/quotations/')[1].slice(0, 36);
-  await page.getByTestId('add-line').click();
-  await page.getByTestId('line-0-description_en').fill('Steel canopy supply and erection');
-  await page.getByTestId('line-0-description_en').blur();
-  await page.getByTestId('line-0-quantity').fill('10');
-  await page.getByTestId('line-0-quantity').blur();
-  const priced = done(page, /\/api\/lines\//);
-  await page.getByTestId('line-0-manual_rate').fill('10000');
-  await page.getByTestId('line-0-manual_rate').blur();
-  await priced;
+  await page.getByTestId('new-description').fill('Steel canopy supply and erection');
+  await page.getByTestId('new-quantity').fill('10');
+  await page.getByTestId('new-rate').fill('10000');
+  await page.getByTestId('new-rate').press('Enter');
+  await expect(page.getByTestId('line-0-total')).toHaveText('100,000.00');
   await page.getByTestId('quick-approve').click();
   await expect(page.getByTestId('rev-status')).toHaveText('Approved');
 

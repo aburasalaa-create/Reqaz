@@ -39,13 +39,14 @@ export default function NewQuotation({ open, onClose, opportunity }: { open: boo
     mutationFn: async () => {
       if (!opportunity && !customerId) throw new Error(t('quote.pickCustomer'));
       let opportunityId = opportunity?.id ?? (oppChoice !== NEW_OPP ? oppChoice : null);
+      // The title is optional: without one the quotation is named after today's date and can be renamed later.
+      const title = v.title.trim() || `${t('quote.new')} ${new Date().toLocaleDateString('en-GB')}`;
       if (!opportunityId) {
         if (!canOpen) throw new Error(t('quote.noOpportunity'));
-        if (!v.title.trim()) throw new Error(t('quote.needTitle'));
-        const o = await api.post('/opportunities', { title: v.title, customer_id: customerId, currency: v.currency });
+        const o = await api.post('/opportunities', { title, customer_id: customerId, currency: v.currency });
         opportunityId = o.id;
       }
-      return api.post('/quotations', { ...v, tender_id: v.tender_id || undefined, template_id: v.template_id || undefined, opportunity_id: opportunityId });
+      return api.post('/quotations', { ...v, title, tender_id: v.tender_id || undefined, template_id: v.template_id || undefined, opportunity_id: opportunityId });
     },
     onSuccess: (q) => nav(`/quotations/${q.id}`),
   });

@@ -40,6 +40,10 @@ export default function QuotationDetail() {
   const [award, setAward] = useState<any>(null);
   const [lost, setLost] = useState<string | null>(null);
   const [showCostsPref, setShowCosts] = useState<boolean | null>(null);
+  const [showArPref, setShowAr] = useState<boolean | null>(null);
+  const blankItem = { description_en: '', unit: 'LS', quantity: '1', manual_rate: '' };
+  const [item, setItem] = useState(blankItem);
+  const savedTerms = useRef('');
 
   // Fields the user is editing right now; server refreshes must not overwrite them.
   const dirty = useRef(new Set<string>());
@@ -55,11 +59,15 @@ export default function QuotationDetail() {
       return merged;
     }));
     setParams((local) => Object.fromEntries(PARAM_FIELDS.map((k) => [k, sameRev && dirty.current.has(`param:${k}`) ? local[k] : rev.data[k]])));
-    if (!sameRev) setTerms({
-      ...Object.fromEntries(PROPOSAL_TEXT_FIELDS.map((k) => [k, rev.data[k] ?? ''])),
-      ...Object.fromEntries(PROPOSAL_ROW_FIELDS.map((k) => [k, rev.data[k] ?? []])),
-      reference_prefix: quote.data?.reference_prefix ?? '',
-    });
+    if (!sameRev) {
+      const loaded = {
+        ...Object.fromEntries(PROPOSAL_TEXT_FIELDS.map((k) => [k, rev.data[k] ?? ''])),
+        ...Object.fromEntries(PROPOSAL_ROW_FIELDS.map((k) => [k, rev.data[k] ?? []])),
+        reference_prefix: quote.data?.reference_prefix ?? '',
+      };
+      savedTerms.current = JSON.stringify(loaded);
+      setTerms(loaded);
+    }
   }, [rev.data]);
 
   const refresh = async () => {
@@ -68,7 +76,14 @@ export default function QuotationDetail() {
   const onErr = (e: Error) => { toast(e.message, 'error'); void refresh(); };
 
   const patchLine = useMutation({ mutationFn: ({ lid, body }: { lid: string; body: any }) => api.patch(`/lines/${lid}`, body), onSuccess: refresh, onError: onErr });
-  const addLine = useMutation({ mutationFn: () => api.post(`/revisions/${revId}/lines`, { description_en: 'New item', unit: 'LS', quantity: '1', section: rows.at(-1)?.section ?? '' }), onSuccess: refresh, onError: onErr });
+  const quickAdd = useMutation({
+    mutationFn: (x: typeof blankItem) => api.post(`/revisions/${revId}/lines`, {
+      description_en: x.description_en.trim(), unit: x.unit.trim() || 'LS', quantity: x.quantity || '1', section: rows.at(-1)?.section ?? '',
+      ...(x.manual_rate !== '' ? { manual_rate: x.manual_rate } : {}),
+    }),
+    onSuccess: () => { setItem(blankItem); void refresh(); setTimeout(() => document.querySelector<HTMLInputElement>('[data-testid=new-description]')?.focus(), 50); },
+    onError: onErr,
+  });
   const delLine = useMutation({ mutationFn: (lid: string) => api.del(`/lines/${lid}`), onSuccess: refresh, onError: onErr });
   const applyBoq = useMutation({ mutationFn: (tid: string) => api.post(`/revisions/${revId}/apply-boq-template`, { template_id: tid }), onSuccess: refresh, onError: onErr });
   const patchRev = useMutation({ mutationFn: (body: any) => api.patch(`/revisions/${revId}`, body), onSuccess: refresh, onError: onErr });
@@ -101,6 +116,8 @@ export default function QuotationDetail() {
   const cur = q.currency;
   // Simple view by default: description, quantity and a typed rate. Costing opens automatically when costs exist.
   const showCosts = showCostsPref ?? Number(r.direct_cost) > 0;
+  const showAr = showArPref ?? rows.some((l) => l.description_ar);
+  const submitItem = () => { if (item.description_en.trim() && !quickAdd.isPending) quickAdd.mutate(item); };
 
   const commitLine = (row: any, field: string) => {
     dirty.current.delete(`${row.id}:${field}`);
@@ -122,11 +139,14 @@ export default function QuotationDetail() {
     setParams((p) => ({ ...p, [k]: v }));
     if (String(r[k] ?? '') !== String(v ?? '')) patchRev.mutate({ [k]: v });
   };
-  const saveTerms = async () => {
+  const saveTerms = async (quiet = false) => {
+    const snapshot = JSON.stringify(terms);
+    if (quiet && snapshot === savedTerms.current) return;
     try {
       if ((terms.reference_prefix ?? '') !== (q.reference_prefix ?? '')) await api.patch(`/quotations/${q.id}`, { reference_prefix: terms.reference_prefix });
       await patchRev.mutateAsync(proposalBody(terms));
-      toast(t('common.saved'));
+      savedTerms.current = snapshot;
+      if (!quiet) toast(t('common.saved'));
     } catch { /* onError already reported it */ }
   };
   const pdf = (lang: string) => api.openFile(`/revisions/${r.id}/pdf?lang=${lang}`).catch((e) => toast(e.message, 'error'));
@@ -189,19 +209,19 @@ export default function QuotationDetail() {
         </div>
       </div>
 
-      <div className="grid gap-4 2xl:grid-cols-[1fr_22rem]">
+      <div className="grid gap-4 xl:grid-cols-[1fr_20rem]">
         <div className="min-w-0 space-y-4">
           <Card title={t('quote.lines')} bodyClass="p-0" actions={<>
+            <label className="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" data-testid="show-arabic" checked={showAr} onChange={(e) => setShowAr(e.target.checked)} />{t('quote.showArabic')}</label>
             <label className="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" data-testid="show-costs" checked={showCosts} onChange={(e) => setShowCosts(e.target.checked)} />{t('quote.costBreakdown')}</label>
             {editable && boqs.data?.length > 0 && <Select className="w-52" value="" onChange={(e) => e.target.value && applyBoq.mutate(e.target.value)} aria-label={t('quote.boqTemplate')}>
               <option value="">{t('quote.boqTemplate')}…</option>{boqs.data.filter((b: any) => b.is_active).map((b: any) => <option key={b.id} value={b.id}>{b.name} ({b.item_count})</option>)}</Select>}
-            {editable && <Button variant="secondary" busy={addLine.isPending} onClick={() => addLine.mutate()} data-testid="add-line"><Plus className="h-4 w-4" />{t('quote.addLine')}</Button>}
           </>}>
             <div className="overflow-x-auto">
               <table className={cx('w-full text-sm', showCosts ? 'min-w-[900px]' : 'min-w-[560px]')}>
                 <thead className="bg-slate-50">
                   <tr>
-                    {showCosts && <><th className="th w-24">{t('quote.section')}</th><th className="th w-14">{t('quote.item')}</th></>}<th className="th min-w-[14rem]">{t('quote.descEn')} / {t('quote.descAr')}</th>
+                    {showCosts && <><th className="th w-24">{t('quote.section')}</th><th className="th w-14">{t('quote.item')}</th></>}<th className="th min-w-[14rem]">{showAr ? `${t('quote.descEn')} / ${t('quote.descAr')}` : t('quote.descEn')}</th>
                     <th className="th w-16">{t('quote.unit')}</th><th className="th w-28 text-end">{t('quote.qty')}</th>
                     {showCosts && COST_FIELDS.map((f) => <th key={f} className="th w-24 text-end">{t(COST_LABEL[f])}</th>)}
                     {showCosts && <th className="th w-24 text-end">{t('quote.costTotal')}</th>}
@@ -219,7 +239,7 @@ export default function QuotationDetail() {
                       <tr key={l.id} className="align-top">
                         {showCosts && <><td className="px-2 py-1">{cell('section')}</td>
                         <td className="px-2 py-1">{cell('item_code')}</td></>}
-                        <td className="px-2 py-1">{cell('description_en')}{cell('description_ar', 'text-slate-600')}</td>
+                        <td className="px-2 py-1">{cell('description_en')}{(showAr || !editable && l.description_ar) && cell('description_ar', 'text-slate-600')}</td>
                         <td className="px-2 py-1">{cell('unit')}</td>
                         <td className="px-2 py-1">{cell('quantity', 'text-end tabular-nums', 'number')}</td>
                         {showCosts && COST_FIELDS.map((f) => <td key={f} className="bg-amber-50/40 px-2 py-1">{cell(f, 'text-end tabular-nums', 'number')}</td>)}
@@ -234,14 +254,34 @@ export default function QuotationDetail() {
                       </tr>
                     );
                   })}
+                  {editable && (
+                    <tr className="bg-brand-50/30" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitItem(); } }}>
+                      {showCosts && <td colSpan={2} />}
+                      <td className="px-2 py-1.5"><input data-testid="new-description" className="w-full rounded border border-slate-300 bg-white px-2 py-1 focus:border-brand-500 focus:outline-none"
+                        placeholder={t('quote.newItem')} value={item.description_en} onChange={(e) => setItem({ ...item, description_en: e.target.value })} /></td>
+                      <td className="px-2 py-1.5"><input data-testid="new-unit" className="w-full rounded border border-slate-300 bg-white px-1 py-1 focus:border-brand-500 focus:outline-none"
+                        aria-label={t('quote.unit')} value={item.unit} onChange={(e) => setItem({ ...item, unit: e.target.value })} /></td>
+                      <td className="px-2 py-1.5"><input data-testid="new-quantity" type="number" step="any" min="0" className="w-full rounded border border-slate-300 bg-white px-1 py-1 text-end tabular-nums focus:border-brand-500 focus:outline-none"
+                        aria-label={t('quote.qty')} value={item.quantity} onChange={(e) => setItem({ ...item, quantity: e.target.value })} /></td>
+                      {showCosts && <td colSpan={COST_FIELDS.length + 1} />}
+                      <td className="px-2 py-1.5"><input data-testid="new-rate" type="number" step="any" min="0" className="w-full rounded border border-slate-300 bg-white px-1 py-1 text-end tabular-nums focus:border-brand-500 focus:outline-none"
+                        aria-label={t('quote.sellRate')} placeholder="0.00" value={item.manual_rate} onChange={(e) => setItem({ ...item, manual_rate: e.target.value })} /></td>
+                      <td className="px-2 py-1.5 text-end tabular-nums text-slate-500">{money(Number(item.quantity || 0) * Number(item.manual_rate || 0))}</td>
+                      <td className="px-1 py-1.5"><button type="button" data-testid="new-add" aria-label={t('quote.add')} disabled={!item.description_en.trim() || quickAdd.isPending}
+                        className="rounded bg-brand-700 p-1 text-white hover:bg-brand-800 disabled:opacity-40" onClick={submitItem}><Plus className="h-4 w-4" /></button></td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
             {showCosts && <div className="border-t px-4 py-1.5 text-xs text-amber-700">{t('quote.estimateOnly')}</div>}
           </Card>
 
-          <Card title={t('proposal.heading')} actions={editable && <Button busy={patchRev.isPending} onClick={saveTerms} data-testid="save-proposal">{t('common.save')}</Button>}>
+          <Card title={t('quote.proposalDetails')} actions={editable && <Button variant="secondary" busy={patchRev.isPending} onClick={() => saveTerms()} data-testid="save-proposal">{t('common.save')}</Button>}>
+            {editable && <p className="-mt-1 mb-3 text-xs text-slate-400">{t('quote.autosaved')}</p>}
+            <div onBlur={(e) => { if (editable) void saveTerms(true); }}>
             <ProposalEditor terms={terms} setTerms={setTerms} editable={editable} contacts={r.contacts} users={lk?.users ?? []} netAmount={P.net_amount} currency={q.currency} />
+            </div>
           </Card>
           <Attachments entityType="quotation" entityId={q.id} canWrite={can('quotations.write')} />
         </div>

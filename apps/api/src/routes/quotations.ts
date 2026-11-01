@@ -274,13 +274,18 @@ export default async function quotationRoutes(app: FastifyInstance, { db, storag
     const { id } = idParam.parse(req.params);
     const body = z.object({
       project_name: z.string().trim().max(300).optional(),
-      project_manager_id: z.uuid(),
-      start_date: z.iso.date(),
-      target_completion_date: z.iso.date(),
+      project_manager_id: optUuid,
+      start_date: optDate,
+      target_completion_date: optDate,
       signed_date: optDate,
       retention_pct: decimal.optional(),
       advance_payment_pct: decimal.optional(),
-    }).parse(req.body);
+    }).parse(req.body ?? {});
+    // Only the decision is needed: the project manager defaults to the person awarding, the start to today and the
+    // target to 90 days later (the same defaults as converting a customer PO). All can be changed on the project.
+    body.project_manager_id ||= req.user.id;
+    body.start_date ||= new Date().toISOString().slice(0, 10);
+    body.target_completion_date ||= new Date(Date.parse(body.start_date) + 90 * 86_400_000).toISOString().slice(0, 10);
     if (body.target_completion_date < body.start_date) throw new HttpError(422, 'Target completion must be on or after the start date', 'rule_violation');
     return tx(db, req, async (t) => {
       const r = await one<{ result: { contract_id: string; project_id: string } }>(t,

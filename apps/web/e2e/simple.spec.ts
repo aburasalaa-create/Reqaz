@@ -36,15 +36,13 @@ test('open access: a site engineer quotes and buys on their own', async ({ brows
   await site.waitForURL(/\/quotations\/[0-9a-f-]{36}/);
   await expect(site.getByTestId('show-costs')).not.toBeChecked();
   await expect(site.getByText('Overhead %')).toHaveCount(0);
-  await site.getByTestId('add-line').click();
-  await site.getByTestId('line-0-description_en').fill('Steel shade structure');
-  await site.getByTestId('line-0-description_en').blur();
-  await site.getByTestId('line-0-quantity').fill('12');
-  await site.getByTestId('line-0-quantity').blur();
-  const priced = site.waitForResponse((r) => r.request().method() === 'PATCH' && /\/api\/lines\//.test(r.url()));
-  await site.getByTestId('line-0-manual_rate').fill('1450');
-  await site.getByTestId('line-0-manual_rate').blur();
-  expect((await priced).ok()).toBe(true);
+  // One row: type the item, quantity and rate, press Enter.
+  await site.getByTestId('new-description').fill('Steel shade structure');
+  await site.getByTestId('new-unit').fill('m2');
+  await site.getByTestId('new-quantity').fill('12');
+  await site.getByTestId('new-rate').fill('1450');
+  await site.getByTestId('new-rate').press('Enter');
+  await expect(site.getByTestId('new-description')).toHaveValue('');
   await expect(site.getByTestId('line-0-total')).toHaveText('17,400.00');
   await expect(site.getByTestId('grand-total')).toContainText('20,010.00'); // 17,400 + 15% VAT
   await site.getByTestId('quick-approve').click();
