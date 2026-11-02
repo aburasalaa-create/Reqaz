@@ -8,6 +8,8 @@ COPY apps/web/package.json apps/web/
 RUN npm ci
 COPY packages packages
 COPY apps apps
+COPY scripts scripts
+COPY supabase/migrations supabase/migrations
 # Public values only; they are compiled into the browser bundle.
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
@@ -24,4 +26,6 @@ USER pwuser
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8080)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 # Hosts such as Render set PORT at runtime; the server listens on it.
-CMD ["node", "apps/api/dist/server/index.js"]
+# Pending database migrations are applied first. If one fails the container stops, so the host keeps the previous
+# version running; a database that is already up to date costs one quick query.
+CMD ["sh", "-c", "node scripts/migrate.mjs && exec node apps/api/dist/server/index.js"]
